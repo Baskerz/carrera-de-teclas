@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Carrera de Teclas</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Barlow:wght@400;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: una pista de 4 carriles arriba, el texto a escribir debajo, panel de resultados superpuesto. Look único oscuro (asfalto). */
+:root{
+  --asfalto:#1a1c21; --asfalto-2:#23262d; --linea:#f2c230; --papel:#eceae3; --apagado:#8c909a;
+  --bien:#6fd08c; --mal:#ff5a4f; --azul:#4aa8ff;
+  --display:'Press Start 2P','Courier New',monospace; --cuerpo:'Barlow','Segoe UI',sans-serif; --mono:'JetBrains Mono',ui-monospace,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--asfalto);color:var(--papel);font-family:var(--cuerpo);font-size:16px;padding-inline:16px;padding-block:20px;overflow-x:hidden}
+.app{max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(16px,3.4vw,28px);margin:0;text-wrap:balance;line-height:1.3}
+h1 span{color:var(--linea)}
+.stats{display:flex;gap:18px;font-family:var(--mono);font-size:14px;color:var(--apagado)}
+.stats b{display:block;color:var(--papel);font-size:22px}
+.pista{background:var(--asfalto-2);border:4px solid #0d0e11;padding:0;position:relative;overflow:hidden;image-rendering:pixelated}
+.carril{position:relative;height:clamp(90px,15vh,120px);display:flex;align-items:center;background:repeating-linear-gradient(90deg,#2a2d34 0 24px,#272a31 24px 48px)}
+.carril+.carril{border-top:4px dashed #5a5e68}
+.carril.yo{background:repeating-linear-gradient(90deg,#33363e 0 24px,#30333b 24px 48px)}
+.carril .nombre{position:absolute;left:12px;top:6px;font-family:var(--display);font-size:9px;line-height:1;text-transform:uppercase;color:var(--apagado);z-index:2}
+.carril.yo .nombre{color:var(--linea)}
+.meta{position:absolute;right:0;top:0;bottom:0;width:24px;background:repeating-conic-gradient(var(--papel) 0 25%,#111 0 50%) 0 0/12px 12px}
+.auto{position:absolute;left:0;width:160px;top:50%;margin-top:-24px;filter:drop-shadow(0 6px 0 rgba(0,0,0,.35))}
+#auto0{transition:left .35s steps(6)}
+.auto img{width:100%;display:block;image-rendering:pixelated}
+.pista.corre .auto img{animation:bote .32s steps(1) infinite}
+.pista.corre .carril:nth-child(2n) .auto img{animation-duration:.4s}
+@keyframes bote{50%{transform:translateY(-4px)}}
+.pos{position:absolute;right:36px;top:8px;font-family:var(--display);font-size:16px;color:var(--apagado);z-index:2}
+.carril.lider .pos{color:var(--linea)}
+.pista.corre .auto::before{content:'';position:absolute;left:6%;bottom:2px;width:12px;height:12px;background:#cfd2d8;box-shadow:-16px 4px 0 -2px #9a9ea8,-32px -2px 0 -4px #6b6f79;animation:humo .5s steps(3) infinite}
+@keyframes humo{from{transform:translate(0,0);opacity:.9}to{transform:translate(-14px,-6px);opacity:0}}
+.sacude{animation:sac .3s steps(2)}
+@keyframes sac{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+#aviso{min-height:20px;margin:10px 0 0;color:var(--mal);font-size:14px;font-weight:700}
+.pista,.texto,.velo,input#entrada,button,.barra,.barra i,.w.act{border-radius:0}
+button{box-shadow:0 4px 0 #0d0e11}
+button:active{transform:translateY(3px);box-shadow:0 1px 0 #0d0e11}
+.texto{background:var(--asfalto-2);border-radius:6px;padding:20px;min-height:150px;position:relative}
+.palabras{font-family:var(--mono);font-size:clamp(15px,2.4vw,20px);line-height:1.6;display:flex;flex-direction:column;gap:10px;font-weight:500;overflow-wrap:anywhere}
+.w{color:var(--apagado)}
+.w.act{font-size:1.25em;padding:8px 10px;margin:0}
+.w.ok{color:var(--bien)} .w.err{color:var(--mal);text-decoration:line-through}
+.w.act{color:var(--papel);background:#34383f}
+.w .c-ok{color:var(--bien)} .w .c-mal{color:var(--mal);text-decoration:underline}
+input#entrada{width:100%;margin-top:14px;background:var(--asfalto);border:2px solid #3a3e46;color:var(--papel);font-family:var(--mono);font-size:22px;padding:12px 14px;border-radius:4px;outline:none}
+input#entrada:focus{border-color:var(--linea)}
+input#entrada.mal{border-color:var(--mal)}
+.barra{height:6px;background:var(--asfalto);border-radius:3px;margin-top:14px;overflow:hidden}
+.barra i{display:block;height:100%;width:0;background:var(--linea)}
+.opts{display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-size:14px;color:var(--apagado)}
+.opts .grupo{display:flex;gap:6px}
+button{font-family:var(--cuerpo);font-weight:700;font-size:15px;cursor:pointer;border:2px solid #3a3e46;background:transparent;color:var(--papel);padding:8px 14px;border-radius:4px}
+button:hover{border-color:var(--papel)}
+button:focus-visible,input:focus-visible,label:focus-within{outline:2px solid var(--azul);outline-offset:2px}
+button.sel{background:var(--linea);color:#1a1c21;border-color:var(--linea)}
+button.go{background:var(--linea);color:#1a1c21;border-color:var(--linea);font-size:17px;padding:10px 22px;text-transform:uppercase;letter-spacing:.05em}
+label.chk{display:flex;gap:6px;align-items:center;cursor:pointer}
+.velo{position:absolute;inset:0;background:rgba(20,21,25,.88);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;text-align:center;padding:20px;z-index:5;border-radius:6px}
+.velo[hidden]{display:none!important}
+.cuenta{font-family:var(--display);font-size:clamp(60px,12vw,110px);color:var(--linea);line-height:1}
+.velo h2{font-family:var(--display);font-weight:400;font-size:clamp(16px,3vw,24px);line-height:1.4;margin:0}
+.velo p{margin:0;color:var(--apagado);max-width:46ch}
+.res{display:flex;gap:26px;flex-wrap:wrap;justify-content:center;font-family:var(--mono)}
+.res div{color:var(--apagado);font-size:13px;text-transform:uppercase;letter-spacing:.06em}
+.res b{display:block;font-size:30px;color:var(--papel)}
+.ayuda{font-size:13px;color:var(--apagado);margin:0}
+kbd{font-family:var(--mono);background:var(--asfalto-2);border:1px solid #3a3e46;border-radius:3px;padding:0 5px}
+@media (prefers-reduced-motion:reduce){.auto{transition:none}.pista.corre .auto img,.pista.corre .auto::before,.sacude{animation:none}}
+@media (max-width:480px){.texto{padding:14px}.auto{width:120px;margin-top:-18px}.stats{gap:12px}}
+</style>
+
+<div class="app">
+  <header>
+    <h1>Carrera de <span>Teclas</span></h1>
+    <div class="stats" aria-live="off">
+      <div>PPM<b id="sPpm">0</b></div>
+      <div>Posición<b id="sPos">–</b></div>
+      <div>Precisión<b id="sPre">100%</b></div>
+      <div>Récord<b id="sRec">0</b></div>
+    </div>
+  </header>
+
+  <div class="pista" id="pista"></div>
+
+  <div class="texto" id="caja">
+    <div class="palabras" id="palabras" aria-label="Texto a escribir"></div>
+    <input id="entrada" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Escribe aquí la oración resaltada" placeholder="Escribe aquí…" disabled>
+    <div id="aviso" role="status"></div>
+    <div class="barra"><i id="prog"></i></div>
+
+    <div class="velo" id="velo">
+      <h2 id="vTitulo">¿Listo para correr?</h2>
+      <p id="vTexto">Escribe cada oración completa y pulsa Enter para enviarla. Cuanto más rápido y limpio escribas, más rápido avanza tu coche. Cruza la meta antes que los rivales.</p>
+      <div class="res" id="vRes" hidden></div>
+      <button class="go" id="btnGo">Empezar carrera</button>
+    </div>
+  </div>
+
+  <div class="opts">
+    <span>Dificultad</span>
+    <div class="grupo" id="dif">
+      <button data-d="facil">Fácil</button>
+      <button data-d="normal" class="sel">Normal</button>
+      <button data-d="dificil">Difícil</button>
+    </div>
+    <label class="chk"><input type="checkbox" id="tildes" checked> Ignorar tildes</label>
+  </div>
+  <p class="ayuda"><kbd>Enter</kbd> envía la oración · <kbd>Esc</kbd> reinicia · Si la oración tiene errores, el coche no avanza: corrígela y vuelve a enviarla.</p>
+</div>
+
+<script>
+
+const FRASES = {
+  facil: ["El sol sale por el este.","Me gusta tomar café por la mañana.","Mi perro corre por el parque.","La luna brilla en el cielo.","Hoy es un buen día para correr.","Los niños juegan en la plaza.","Voy a la playa con mis amigos.","El gato duerme sobre la mesa.","Ella lee un libro en el jardín.","Mañana vamos a visitar a la abuela.","El tren llega a las cinco de la tarde.","Compré pan fresco en la panadería."],
+  normal: ["Cuando llueve, la ciudad huele a tierra mojada y a recuerdos.","Aprender a escribir rápido requiere paciencia y mucha práctica diaria.","Los barcos salieron del puerto antes de que amaneciera.","Mi abuelo siempre decía que el tiempo es el mejor maestro.","Subimos la montaña despacio para disfrutar de cada paisaje.","Hay noches en las que el silencio dice más que mil palabras.","La biblioteca del pueblo guarda historias de hace cien años.","Si corres con el corazón, la meta siempre queda más cerca.","El mercado estaba lleno de frutas, flores y música alegre.","Un buen mecanógrafo no mira el teclado, escucha el ritmo de sus dedos."],
+  dificil: ["Aunque el camino era largo y estaba lleno de obstáculos, nunca dejó de avanzar hacia su destino.","El científico anotó cuidadosamente cada resultado, convencido de que el descubrimiento cambiaría la historia.","Entre las montañas, un río cristalino serpenteaba mientras el viento susurraba antiguas leyendas.","Después de tantos años, volvió a la casa donde había crecido y reconoció el aroma del pan recién hecho.","La velocidad no sirve de nada sin precisión: quien escribe con calma, siempre llega más lejos.","Cuando amaneció, los pescadores ya habían regresado con las redes llenas y las manos agrietadas por la sal.","Ningún campeón nació sabiéndolo todo; todos fueron, alguna vez, principiantes con muchas ganas de aprender.","En la plaza vieja, las campanas anunciaron el mediodía y las palomas levantaron el vuelo todas a la vez."]
+};
+const DIF = {
+  facil:  {n:4, bots:[16,21,26]},
+  normal: {n:6, bots:[26,33,40]},
+  dificil:{n:7, bots:[38,47,56]}
+};
+const NOMBRES = ['Tú','Relámpago','Cometa','Turbo'];
+const COLORES = ['#f2c230','#ff5a4f','#4aa8ff','#b58cff'];
+
+const $ = id => document.getElementById(id);
+let dif = 'normal', estado = 'espera', palabras = [], idx = 0, t0 = 0, raf = 0;
+let totalCar = 0, hechos = 0, aciertos = 0, errores = 0, bots = [], llegada = [], tFin = 0;
+const guardar = (k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
+const leer = k=>{try{return localStorage.getItem(k)}catch(e){return null}};
+
+const norm = (s)=> $('tildes').checked ? s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase() : s;
+const sombra = h => { const n=parseInt(h.slice(1),16); const f=v=>Math.round(v*.62).toString(16).padStart(2,'0'); return '#'+f(n>>16&255)+f(n>>8&255)+f(n&255); };
+// Coche de drift (coupé japonés, 40x16 px): se dibuja con rectángulos para que cada píxel sea exacto.
+function carSVG(c, franja){
+  const cv=document.createElement('canvas'); cv.width=40; cv.height=16;
+  const g=cv.getContext('2d');
+  const pal={K:'#0d0e11',B:c,D:sombra(c),S:franja,W:'#a9d8f5',V:'#6fa6c8',T:'#17181c',H:'#c9ccd4',L:'#fff3a6',R:'#ff3b30',F:'#23252b',E:'#8a8d96'};
+  const R=(x,y,w,h,k)=>{ g.fillStyle=pal[k]; g.fillRect(x,y,w,h); };
+  // alerón trasero
+  R(1,0,10,2,'K'); R(2,0,8,1,'F'); R(3,2,1,3,'K'); R(8,2,1,3,'K');
+  // cabina (techo caído tipo fastback)
+  const L=[19,17,15,13,11], Rr=[27,29,31,33,35];
+  for(let y=0;y<5;y++) R(L[y],y,Rr[y]-L[y],1,'K');
+  R(20,1,6,1,'B');
+  for(let y=2;y<5;y++){ R(L[y]+2,y,Rr[y]-L[y]-4,1,'W'); }
+  R(24,2,1,3,'B'); R(18,3,5,1,'V');
+  // carrocería
+  R(1,5,38,5,'K'); R(3,4,34,1,'K');
+  R(2,5,36,4,'B'); R(2,8,36,1,'D');
+  R(10,6,22,1,'S'); R(21,5,1,3,'K'); R(16,7,2,1,'D');
+  R(2,6,2,2,'R'); R(35,6,3,2,'L'); R(36,8,3,1,'D'); R(0,8,2,1,'E');
+  // ruedas
+  [8,31].forEach(cx=>{
+    R(cx-3,6,7,1,'K'); R(cx-5,7,11,1,'K');
+    [5,7,9,9,9,9,9,7,5].forEach((w,i)=>R(cx-((w-1)/2),7+i,w,1,'T'));
+    [3,5,5,5,3].forEach((w,i)=>R(cx-((w-1)/2),9+i,w,1,'H'));
+    R(cx,11,1,1,'K');
+  });
+  return `<img alt="" src="${cv.toDataURL()}">`;
+}
+const FRANJAS=['#1a1c21','#ffffff','#ffffff','#ffffff'];
+function rangos(plFin){
+  const keys=[plFin? 2-llegada.length*0.01-0.005 : hechos/totalCar, ...bots.map((b,i)=>{const o=llegada.indexOf(i+1); return o>=0? 2-o*0.01 : b.p;})];
+  return keys.map((k,i)=>1+keys.filter((k2,j)=>k2>k||(k2===k&&j<i)).length);
+}
+function mostrarRangos(plFin){
+  const r=rangos(plFin), hay=plFin||hechos>0||bots.some(b=>b.p>0.002);
+  r.forEach((v,i)=>{ $('pos'+i).textContent=hay?v+'º':''; $('pos'+i).parentNode.classList.toggle('lider',hay&&v===1); });
+  $('sPos').textContent=hay?r[0]+'º':'–';
+}
+
+function construirPista(){
+  $('pista').innerHTML = NOMBRES.map((n,i)=>`<div class="carril ${i?'':'yo'}"><span class="nombre">${n}</span><span class="pos" id="pos${i}"></span><div class="meta"></div><div class="auto" id="auto${i}">${carSVG(COLORES[i],FRANJAS[i])}</div></div>`).join('');
+  moverAutos([0,0,0,0]);
+}
+function moverAutos(p){
+  const ancho = $('pista').clientWidth - $('auto0').offsetWidth - 24;
+  p.forEach((v,i)=>{ $('auto'+i).style.left = (8 + Math.min(1,v)*(ancho-8))+'px'; });
+}
+function elegirPalabras(){
+  const pool=[...FRASES[dif]];
+  for(let i=pool.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [pool[i],pool[j]]=[pool[j],pool[i]]; }
+  return pool.slice(0,DIF[dif].n);
+}
+function pintar(){
+  $('palabras').innerHTML = palabras.map((w,i)=>{
+    const cl = i<idx ? (resultados[i]?'ok':'err') : i===idx ? 'act':'';
+    if(i===idx){
+      const t = $('entrada').value, wn = norm(w), tn = norm(t);
+      let h=''; for(let k=0;k<w.length;k++){
+        const c = k<t.length ? (tn[k]===wn[k]?'c-ok':'c-mal') : '';
+        h+=`<span class="${c}">${w[k]}</span>`;
+      }
+      if(t.length>w.length) h+=`<span class="c-mal">${t.slice(w.length).replace(/ /g,'·')}</span>`;
+      return `<span class="w act">${h}</span>`;
+    }
+    return `<span class="w ${cl}">${w}</span>`;
+  }).join('');
+}
+let resultados = [];
+
+function empezar(){
+  palabras = elegirPalabras(); idx=0; resultados=[]; hechos=0; aciertos=0; errores=0; $('aviso').textContent=''; llegada=[]; tFin=0;
+  totalCar = palabras.reduce((a,w)=>a+w.length+1,0);
+  bots = DIF[dif].bots.map(w=>({cps:w*5/60, p:0, f:0, ruido:0}));
+  construirPista(); $('entrada').value=''; $('prog').style.width='0'; pintar();
+  for(let i=0;i<4;i++) $('pos'+i).textContent='';
+  $('sPos').textContent='–';
+  $('sPpm').textContent='0'; $('sPre').textContent='100%'; $('vRes').hidden=true; $('btnGo').hidden=true;
+  $('vTitulo').textContent='Prepárate'; $('vTexto').hidden=true;
+  estado='cuenta'; let n=3;
+  $('vTitulo').innerHTML=`<span class="cuenta">${n}</span>`;
+  const iv=setInterval(()=>{
+    n--;
+    if(n>0){ $('vTitulo').innerHTML=`<span class="cuenta">${n}</span>`; }
+    else { clearInterval(iv); $('velo').hidden=true; arrancar(); }
+  },800);
+}
+function arrancar(){
+  estado='corre'; t0=performance.now(); $('pista').classList.add('corre');
+  const e=$('entrada'); e.disabled=false; e.focus();
+  let last=t0;
+  const loop=now=>{
+    if(estado!=='corre') return;
+    const dt=(now-last)/1000; last=now;
+    bots.forEach((b,i)=>{
+      if(b.p>=1) return;
+      b.ruido += (Math.random()-.5)*.6; b.ruido*=.97;
+      b.p += b.cps*(1+b.ruido*.25)*dt/totalCar;
+      if(b.p>=1){ b.p=1; llegada.push(i+1); }
+    });
+    moverAutos([hechos/totalCar,...bots.map(b=>b.p)]); mostrarRangos(false);
+    const secs=(now-t0)/1000;
+    $('sPpm').textContent = secs>1 ? Math.round((aciertos/5)/(secs/60)) : 0;
+    raf=requestAnimationFrame(loop);
+  };
+  raf=requestAnimationFrame(loop);
+}
+let tAviso=0;
+function enviar(){
+  const e=$('entrada'), w=palabras[idx], t=e.value.trim();
+  if(!t) return;
+  if(norm(t)!==norm(w)){
+    errores++;
+    e.classList.remove('sacude'); void e.offsetWidth; e.classList.add('sacude');
+    $('aviso').textContent='La oración tiene errores. Corrígela y vuelve a enviarla con Enter.';
+    clearTimeout(tAviso); tAviso=setTimeout(()=>$('aviso').textContent='',1500);
+    $('sPre').textContent=Math.round(idx/(idx+errores)*100)+'%';
+    pintar(); return;
+  }
+  resultados[idx]=true; aciertos+=w.length+1;
+  hechos += w.length+1; idx++; e.value=''; e.classList.remove('mal');
+  $('sPre').textContent=Math.round(idx/(idx+errores)*100)+'%';
+  $('prog').style.width = (idx/palabras.length*100)+'%';
+  if(idx>=palabras.length){ terminar(); } else pintar();
+}
+function terminar(){
+  estado='fin'; cancelAnimationFrame(raf); tFin=(performance.now()-t0)/1000; $('pista').classList.remove('corre'); $('aviso').textContent='';
+  $('entrada').disabled=true;
+  const pos = rangos(true)[0];
+  moverAutos([1,...bots.map(b=>b.p)]); mostrarRangos(true);
+  const ppm=Math.round((aciertos/5)/(tFin/60));
+  const pre=Math.round(palabras.length/(palabras.length+errores)*100);
+  const rec=+(leer('ct-rec-'+dif)||0), nuevo=ppm>rec;
+  if(nuevo) guardar('ct-rec-'+dif,String(ppm));
+  actualizarRecord();
+  $('sPpm').textContent=ppm; $('sPre').textContent=pre+'%';
+  const titulos=['','¡Victoria!','Segundo puesto','Tercer puesto','Último puesto'];
+  $('vTitulo').textContent=titulos[pos]; $('vTexto').hidden=false;
+  $('vTexto').textContent = pos===1 ? (nuevo?'¡Y además nuevo récord en esta dificultad!':'Cruzaste la meta primero.') : 'Los rivales llegaron antes. Prueba de nuevo y mantén el ritmo.';
+  $('vRes').hidden=false;
+  $('vRes').innerHTML=`<div>Velocidad<b>${ppm} PPM</b></div><div>Precisión<b>${pre}%</b></div><div>Tiempo<b>${tFin.toFixed(1)} s</b></div>`;
+  $('btnGo').textContent='Correr otra vez'; $('btnGo').hidden=false; $('velo').hidden=false; $('btnGo').focus();
+}
+function actualizarRecord(){ $('sRec').textContent = leer('ct-rec-'+dif)||0; }
+
+$('entrada').addEventListener('input',e=>{
+  const v=e.target.value;
+  if(estado!=='corre') return;
+  const w=norm(palabras[idx]), t=norm(v);
+  e.target.classList.toggle('mal', t.length>0 && !w.startsWith(t));
+  pintar();
+});
+$('entrada').addEventListener('keydown',e=>{ if(e.key==='Enter'){e.preventDefault(); if(estado==='corre'&&e.target.value.trim()) enviar();} });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape' && estado!=='cuenta'){ reiniciar(); } });
+function reiniciar(){
+  cancelAnimationFrame(raf); estado='espera'; $('pista').classList.remove('corre'); $('aviso').textContent=''; construirPista(); palabras=[]; $('palabras').innerHTML=''; $('entrada').value=''; $('entrada').disabled=true; $('prog').style.width='0';
+  $('vTitulo').textContent='¿Listo para correr?'; $('vTexto').hidden=false; $('vTexto').textContent='Escribe cada oración completa y pulsa Enter para enviarla. Cuanto más rápido y limpio escribas, más rápido avanza tu coche. Cruza la meta antes que los rivales.';
+  $('vRes').hidden=true; $('btnGo').textContent='Empezar carrera'; $('btnGo').hidden=false; $('velo').hidden=false;
+}
+$('btnGo').addEventListener('click',empezar);
+$('dif').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b||estado==='cuenta') return;
+  dif=b.dataset.d; [...$('dif').children].forEach(x=>x.classList.toggle('sel',x===b));
+  actualizarRecord(); if(estado!=='espera') reiniciar();
+});
+window.addEventListener('resize',()=>{ if(estado!=='corre') moverAutos(estado==='fin'?[1,...bots.map(b=>b.p)]:[0,0,0,0]); });
+construirPista(); actualizarRecord();
+$('palabras').textContent='La carrera empieza cuando pulses el botón.';
+</script>
+
+</html>
