@@ -66,7 +66,7 @@ button:focus-visible,input:focus-visible,label:focus-within{outline:2px solid va
 button.sel{background:var(--linea);color:#1a1c21;border-color:var(--linea)}
 button.go{background:var(--linea);color:#1a1c21;border-color:var(--linea);font-size:17px;padding:10px 22px;text-transform:uppercase;letter-spacing:.05em}
 label.chk{display:flex;gap:6px;align-items:center;cursor:pointer}
-.velo{position:absolute;inset:0;background:rgba(20,21,25,.88);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;text-align:center;padding:20px;z-index:5;border-radius:6px}
+.velo{position:absolute;inset:0;background:rgba(20,21,25,.96);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;text-align:center;padding:20px;z-index:5;border-radius:6px}
 .velo[hidden]{display:none!important}
 .cuenta{font-family:var(--display);font-size:clamp(60px,12vw,110px);color:var(--linea);line-height:1}
 .velo h2{font-family:var(--display);font-weight:400;font-size:clamp(16px,3vw,24px);line-height:1.4;margin:0}
@@ -82,8 +82,6 @@ kbd{font-family:var(--mono);background:var(--asfalto-2);border:1px solid #3a3e46
 .rank-cab{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
 .rank h2{font-family:var(--display);font-weight:400;font-size:clamp(12px,2.2vw,16px);margin:0;line-height:1.4}
 .rank h2 span{color:var(--linea)}
-.nombre-j{font-size:14px;color:var(--apagado);display:flex;gap:8px;align-items:center}
-.nombre-j input{background:var(--asfalto);border:2px solid #3a3e46;color:var(--papel);font-family:var(--mono);font-size:15px;padding:6px 10px;width:12.5em;max-width:100%;border-radius:0}
 #rankLista{list-style:none;margin:0;padding:0;display:grid;gap:4px;font-family:var(--mono)}
 #rankLista li{display:grid;grid-template-columns:2.2em 1fr auto auto;gap:12px;padding:6px 10px;background:var(--asfalto);font-size:15px;align-items:baseline}
 #rankLista li b{color:var(--linea)}
@@ -104,6 +102,22 @@ kbd{font-family:var(--mono);background:var(--asfalto-2);border:1px solid #3a3e46
 .lb-jug li small,.tabla li small{color:var(--apagado)}
 .tabla{max-width:520px}
 #lbMsg{min-height:1.3em;color:var(--mal);font-weight:700;font-size:14px}
+.perfil{background:var(--asfalto-2);padding:16px 20px;display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+.perfil.bloq{opacity:.55;pointer-events:none}
+.prev{width:176px;height:80px;display:flex;align-items:center;justify-content:center;background:repeating-linear-gradient(90deg,#2a2d34 0 24px,#272a31 24px 48px);border:4px solid #0d0e11;flex:none}
+.prev img{width:160px;image-rendering:pixelated;filter:drop-shadow(0 6px 0 rgba(0,0,0,.35))}
+.pf-campos{display:flex;flex-direction:column;gap:12px;min-width:0;flex:1 1 260px}
+.pf-nombre{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:14px;color:var(--apagado)}
+.pf-nombre input{background:var(--asfalto);border:2px solid #3a3e46;color:var(--papel);font-family:var(--mono);font-size:16px;padding:8px 10px;width:14em;max-width:100%;border-radius:0}
+.pf-fila{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:14px;color:var(--apagado)}
+.pf-fila>span{min-width:7.5em}
+.sws{display:flex;gap:8px;flex-wrap:wrap}
+.sw{width:30px;height:30px;padding:0;border:3px solid #0d0e11;box-shadow:none;border-radius:0}
+.sw[aria-pressed="true"]{outline:3px solid var(--papel);outline-offset:2px}
+.sw:active{transform:none;box-shadow:none}
+.dot{display:inline-block;width:10px;height:10px;margin-right:6px;border:1px solid #0d0e11;vertical-align:baseline}
+.conf{position:absolute;top:-10px;width:8px;height:8px;pointer-events:none;z-index:6;animation:cae 2.6s steps(14) forwards}
+@keyframes cae{to{transform:translateY(460px) rotate(200deg)}}
 </style>
 
 <div class="app">
@@ -158,6 +172,15 @@ kbd{font-family:var(--mono);background:var(--asfalto-2);border:1px solid #3a3e46
     </div>
   </div>
 
+  <section class="perfil" id="perfil" aria-label="Tu piloto">
+    <div class="prev" id="prevCoche"></div>
+    <div class="pf-campos">
+      <label class="pf-nombre" for="nombre">Nombre del piloto <input id="nombre" maxlength="14" placeholder="Jugador" autocomplete="off"></label>
+      <div class="pf-fila"><span>Color del coche</span><div class="sws" id="swColor" role="group" aria-label="Color del coche"></div></div>
+      <div class="pf-fila"><span>Color de la franja</span><div class="sws" id="swFranja" role="group" aria-label="Color de la franja"></div></div>
+    </div>
+  </section>
+
   <div class="opts">
     <span>Dificultad</span>
     <div class="grupo" id="dif">
@@ -171,7 +194,6 @@ kbd{font-family:var(--mono);background:var(--asfalto-2);border:1px solid #3a3e46
   <section class="rank" aria-labelledby="rankTitulo">
     <div class="rank-cab">
       <h2 id="rankTitulo">Ranking <span id="rankDif">Normal</span></h2>
-      <label class="nombre-j" for="nombre">Tu nombre <input id="nombre" maxlength="14" placeholder="Jugador" autocomplete="off"></label>
     </div>
     <ol id="rankLista"></ol>
     <p class="ayuda">El ranking se guarda en este navegador. La puntuación es PPM × precisión.</p>
@@ -192,8 +214,11 @@ const DIF = {
   dificil:{n:7, bots:[38,47,56]}
 };
 const NOMBRES = ['Tú','Relámpago','Cometa','Turbo'];
-let racers = NOMBRES.map(n=>({nombre:n}));
-const COLORES = ['#f2c230','#ff5a4f','#4aa8ff','#b58cff'];
+let racers = [];
+const PALETA=[['#f2c230','Amarillo'],['#ff5a4f','Rojo'],['#4aa8ff','Azul'],['#b58cff','Morado'],['#6fd08c','Verde'],['#ff8a3d','Naranja'],['#ff6fb5','Rosa'],['#eceae3','Blanco']];
+const FRANJA_OPC=[['#1a1c21','Negro'],['#ffffff','Blanco'],['#ff3b30','Rojo'],['#4aa8ff','Azul']];
+const okColor=c=>typeof c==='string'&&/^#[0-9a-f]{6}$/i.test(c);
+let perfil={color:'#f2c230',franja:'#1a1c21'};
 
 const $ = id => document.getElementById(id);
 let dif = 'normal', estado = 'espera', palabras = [], idx = 0, t0 = 0, raf = 0;
@@ -205,11 +230,11 @@ function esc(t){ return t.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt
 function pintarRank(nuevoId){
   $('rankDif').textContent=NOMBRE_DIF[dif];
   const r=leerRank(dif);
-  $('rankLista').innerHTML = r.length ? r.map((e,i)=>`<li class="${e.id===nuevoId?'nuevo':''}"><span>${i+1}º</span><span class="n">${esc(e.nombre)}</span><b>${e.puntos}</b><small>${e.ppm} PPM · ${e.pre}%</small></li>`).join('') : '<li class="vacio">Aún no hay carreras en esta dificultad. Termina una para entrar al ranking.</li>';
+  $('rankLista').innerHTML = r.length ? r.map((e,i)=>`<li class="${e.id===nuevoId?'nuevo':''}"><span>${i+1}º</span><span class="n"><i class="dot" style="background:${okColor(e.color)?e.color:'#888'}"></i>${esc(e.nombre)}</span><b>${e.puntos}</b><small>${e.ppm} PPM · ${e.pre}%</small></li>`).join('') : '<li class="vacio">Aún no hay carreras en esta dificultad. Termina una para entrar al ranking.</li>';
 }
 function guardarRank(ppm,pre){
   const nombre=($('nombre').value.trim()||'Jugador').slice(0,14);
-  const e={id:Date.now(),nombre,ppm,pre,puntos:Math.round(ppm*pre/100)};
+  const e={id:Date.now(),nombre,color:perfil.color,ppm,pre,puntos:Math.round(ppm*pre/100)};
   const r=leerRank(dif); r.push(e); r.sort((a,b)=>b.puntos-a.puntos); r.length=Math.min(r.length,8);
   guardar('ct-rank-'+dif,JSON.stringify(r));
   const entro=r.some(x=>x.id===e.id);
@@ -267,7 +292,6 @@ function carSVG(c, franja){
   });
   return `<img alt="" src="${cv.toDataURL()}">`;
 }
-const FRANJAS=['#1a1c21','#ffffff','#ffffff','#ffffff'];
 function rangos(plFin){
   const keys=[plFin? 2-Math.max(0,llegada.indexOf(0))*0.01 : hechos/totalCar, ...bots.map((b,i)=>{const o=llegada.indexOf(i+1); return o>=0? 2-o*0.01 : b.p;})];
   return keys.map((k,i)=>1+keys.filter((k2,j)=>k2>k||(k2===k&&j<i)).length);
@@ -280,7 +304,7 @@ function mostrarRangos(plFin){
 
 function construirPista(){
   $('pista').classList.toggle('online',online);
-  $('pista').innerHTML = racers.map((r,i)=>`<div class="carril ${i?'':'yo'}"><span class="nombre">${esc(r.nombre)}</span><span class="pos" id="pos${i}"></span><div class="meta"></div><div class="auto" id="auto${i}">${carSVG(COLORES[i],FRANJAS[i])}</div></div>`).join('');
+  $('pista').innerHTML = racers.map((r,i)=>`<div class="carril ${i?'':'yo'}"><span class="nombre">${esc(r.nombre)}</span><span class="pos" id="pos${i}"></span><div class="meta"></div><div class="auto" id="auto${i}">${carSVG(okColor(r.color)?r.color:PALETA[i%8][0], okColor(r.franja)?r.franja:'#ffffff')}</div></div>`).join('');
   moverAutos(racers.map(()=>0));
 }
 function moverAutos(p){
@@ -312,15 +336,15 @@ let resultados = [];
 function empezar(frasesFijas){
   palabras = frasesFijas || elegirPalabras(); idx=0; resultados=[]; hechos=0; aciertos=0; errores=0; $('aviso').textContent=''; llegada=[]; tFin=0;
   totalCar = palabras.reduce((a,w)=>a+w.length+1,0);
-  if(online){ const otros=jug.filter(j=>j.id!==miId); bots=otros.map(j=>({id:j.id,nombre:j.nombre,p:0,res:null})); racers=[{nombre:'Tú'},...bots]; miRes=null; }
-  else { bots = DIF[dif].bots.map(w=>({cps:w*5/60, p:0, f:0, ruido:0})); racers = NOMBRES.map(n=>({nombre:n})); }
+  if(online){ const otros=jug.filter(j=>j.id!==miId); bots=otros.map(j=>({id:j.id,nombre:j.nombre,color:j.color,franja:j.franja,p:0,res:null})); racers=[yoJ(),...bots]; miRes=null; }
+  else { bots = DIF[dif].bots.map(w=>({cps:w*5/60, p:0, f:0, ruido:0})); racers = racersSolo(); }
   $('lobby').hidden=true; $('vTabla').hidden=true; $('vBotones').hidden=true; $('caja').classList.remove('lobby-activo');
   construirPista(); $('entrada').value=''; $('prog').style.width='0'; pintar();
   racers.forEach((_,i)=>$('pos'+i).textContent='');
   $('sPos').textContent='–';
   $('sPpm').textContent='0'; $('sPre').textContent='100%'; $('vRes').hidden=true; $('btnGo').hidden=true;
   $('vTitulo').textContent='Prepárate'; $('vTexto').hidden=true;
-  estado='cuenta'; let n=3; audio(); tono(440,.15);
+  bloquearPerfil(true); estado='cuenta'; let n=3; audio(); tono(440,.15);
   $('vTitulo').innerHTML=`<span class="cuenta">${n}</span>`;
   const iv=setInterval(()=>{
     n--;
@@ -367,7 +391,7 @@ function enviar(){
   if(idx>=palabras.length){ terminar(); } else pintar();
 }
 function terminar(){
-  estado='fin'; cancelAnimationFrame(raf); tFin=(performance.now()-t0)/1000; $('pista').classList.remove('corre'); $('aviso').textContent=''; motorOff();
+  estado='fin'; cancelAnimationFrame(raf); tFin=(performance.now()-t0)/1000; $('pista').classList.remove('corre'); $('aviso').textContent=''; motorOff(); bloquearPerfil(false);
   $('entrada').disabled=true;
   llegada.push(0);
   const pos = rangos(true)[0];
@@ -378,6 +402,7 @@ function terminar(){
   if(nuevo) guardar('ct-rec-'+dif,String(ppm));
   actualizarRecord();
   const lugar=guardarRank(ppm,pre);
+  if(pos===1) confeti();
   if(pos===1) [523,659,784,1047].forEach((f,i)=>tono(f,.22,'square',.07,i*.13)); else [392,330,262].forEach((f,i)=>tono(f,.28,'triangle',.09,i*.18));
   $('sPpm').textContent=ppm; $('sPre').textContent=pre+'%';
   const titulos=['','¡Victoria!','Segundo puesto','Tercer puesto','Último puesto'];
@@ -392,6 +417,53 @@ function terminar(){
     if(!esAnf) $('vTexto').textContent+=' Espera a que el anfitrión inicie otra carrera.';
     $('vTabla').hidden=false; pintarTabla();
   } else $('btnGo').focus();
+}
+// ---- Perfil del piloto: nombre, color de coche y franja
+function limpiarNombre(n){ return String(n||'').trim().slice(0,14)||'Jugador'; }
+function nombreUnico(base,id){ let n=base,k=2; while(jug.some(j=>j.id!==id&&j.nombre===n)) n=base.slice(0,12)+' '+(k++); return n; }
+function actualizarJug(id,m){
+  const j=jug.find(x=>x.id===id); if(!j) return;
+  j.nombre=nombreUnico(limpiarNombre(m.nombre),id);
+  const usado=c=>jug.some(x=>x.id!==id&&x.color===c);
+  if(okColor(m.color)&&!usado(m.color)) j.color=m.color;
+  else if(!j.color) j.color=(PALETA.find(p=>!usado(p[0]))||PALETA[0])[0];
+  j.franja=okColor(m.franja)?m.franja:'#ffffff';
+}
+function yoJ(){
+  const j=online?jug.find(x=>x.id===miId):null;
+  return j||{nombre:limpiarNombre($('nombre').value),color:perfil.color,franja:perfil.franja};
+}
+function racersSolo(){
+  const cpu=['#ff5a4f','#4aa8ff','#b58cff','#6fd08c','#ff8a3d','#ff6fb5'].filter(c=>c!==perfil.color).slice(0,3);
+  return [{nombre:limpiarNombre($('nombre').value),color:perfil.color,franja:perfil.franja},...cpu.map((c,i)=>({nombre:NOMBRES[i+1],color:c,franja:'#ffffff'}))];
+}
+function racersOnline(){ return [yoJ(),...jug.filter(j=>j.id!==miId)]; }
+function pintarPerfil(){
+  $('prevCoche').innerHTML=carSVG(perfil.color,perfil.franja);
+  [...$('swColor').children].forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.c===perfil.color)));
+  [...$('swFranja').children].forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.c===perfil.franja)));
+}
+function perfilCambio(){
+  guardar('ct-color',perfil.color); guardar('ct-franja',perfil.franja); guardar('ct-nombre',$('nombre').value);
+  if(online){ const m={t:'perfil',nombre:$('nombre').value,color:perfil.color,franja:perfil.franja}; if(esAnf){ actualizarJug(miId,m); emitirSala(); } else if(connAnf&&connAnf.open) connAnf.send(m); }
+  else if(estado==='espera'){ racers=racersSolo(); construirPista(); }
+}
+function bloquearPerfil(b){ $('perfil').classList.toggle('bloq',b); $('nombre').disabled=b; }
+function initPerfil(){
+  const mk=(cont,lista,clave)=>{ $(cont).innerHTML=lista.map(([c,n])=>`<button type="button" class="sw" data-c="${c}" style="background:${c}" aria-label="${n}" title="${n}" aria-pressed="false"></button>`).join('');
+    $(cont).addEventListener('click',e=>{ const b=e.target.closest('.sw'); if(!b) return; perfil[clave]=b.dataset.c; pintarPerfil(); perfilCambio(); }); };
+  mk('swColor',PALETA,'color'); mk('swFranja',FRANJA_OPC,'franja');
+  const c=leer('ct-color'), f=leer('ct-franja');
+  if(PALETA.some(p=>p[0]===c)) perfil.color=c; if(FRANJA_OPC.some(p=>p[0]===f)) perfil.franja=f;
+  $('nombre').value=leer('ct-nombre')||'';
+  $('nombre').addEventListener('input',()=>{ clearTimeout(initPerfil.t); initPerfil.t=setTimeout(perfilCambio,300); });
+  pintarPerfil();
+}
+function confeti(){
+  if(window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+  const caja=$('caja'), piezas=[];
+  for(let i=0;i<40;i++){ const d=document.createElement('i'); d.className='conf'; d.style.left=Math.random()*100+'%'; d.style.background=PALETA[i%PALETA.length][0]; d.style.animationDelay=(Math.random()*.8)+'s'; caja.appendChild(d); piezas.push(d); }
+  setTimeout(()=>piezas.forEach(d=>d.remove()),3800);
 }
 function setDif(d){ dif=d; [...$('dif').children].forEach(x=>x.classList.toggle('sel',x.dataset.d===d)); actualizarRecord(); pintarRank(); }
 
@@ -414,10 +486,12 @@ function enviarProg(m){
 function emitirSala(){ const m={t:'sala',jug,dif}; difundir(m); aplicarSala(m); }
 function aplicarSala(m){
   jug=m.jug; if(m.dif && m.dif!==dif) setDif(m.dif);
-  $('lbJug').innerHTML=jug.map((j,i)=>`<li><span>${esc(j.nombre)}${j.id===miId?' (tú)':''}</span><small>${i===0?'anfitrión':'jugador'}</small></li>`).join('');
+  $('lbJug').innerHTML=jug.map((j,i)=>`<li><span><i class="dot" style="background:${okColor(j.color)?j.color:'#888'}"></i>${esc(j.nombre)}${j.id===miId?' (tú)':''}</span><small>${i===0?'anfitrión':'jugador'}</small></li>`).join('');
   $('lbEstado').textContent = esAnf ? (jug.length<2?'Espera a que entre al menos otro jugador.':`Dificultad: ${NOMBRE_DIF[dif]}. Puedes cambiarla abajo.`) : `Dificultad: ${NOMBRE_DIF[dif]}. Esperando al anfitrión…`;
   $('btnIniciar').hidden=!esAnf; $('btnIniciar').disabled=jug.length<2;
-  if(estado==='espera'){ racers=[{nombre:'Tú'},...jug.filter(j=>j.id!==miId)]; construirPista(); }
+  const yo=jug.find(j=>j.id===miId);
+  if(yo && yo.color && yo.color!==perfil.color){ perfil.color=yo.color; pintarPerfil(); }
+  if(estado==='espera'){ racers=racersOnline(); construirPista(); }
 }
 function entrarSala(){
   online=true; $('lbInicio').hidden=true; $('lbSala').hidden=false; $('lbCodigo').textContent=codigoSala; lbMsg('');
@@ -427,12 +501,13 @@ function crearSala(){
   if(typeof Peer==='undefined'){ lbMsg('No se pudo cargar el modo online.'); return; }
   lbMsg('Creando sala…'); codigoSala=codigoNuevo();
   peer=new Peer(PREF+codigoSala);
-  peer.on('open',id=>{ miId=id; esAnf=true; jug=[{id,nombre:miNombre()}]; entrarSala(); emitirSala(); });
+  peer.on('open',id=>{ miId=id; esAnf=true; jug=[{id,nombre:miNombre(),color:perfil.color,franja:perfil.franja}]; entrarSala(); emitirSala(); });
   peer.on('connection',conn=>{
     conn.on('data',m=>{
       if(m.t==='hola'){
         if(jug.length>=4 || estado==='cuenta' || estado==='corre'){ conn.send({t:'rechazo',motivo: jug.length>=4?'La sala está llena (máximo 4).':'La carrera ya empezó. Espera a la siguiente.'}); setTimeout(()=>conn.close(),400); return; }
-        conns.push({conn,id:conn.peer}); jug.push({id:conn.peer,nombre:String(m.nombre||'Jugador').slice(0,14)}); emitirSala();
+        conns.push({conn,id:conn.peer}); jug.push({id:conn.peer}); actualizarJug(conn.peer,m); emitirSala();
+      } else if(m.t==='perfil'){ actualizarJug(conn.peer,m); emitirSala();
       } else if(m.t==='prog'){ const x={...m,id:conn.peer}; difundir(x,conn); recibirProg(x); }
     });
     conn.on('close',()=>{ conns=conns.filter(c=>c.conn!==conn); jug=jug.filter(j=>j.id!==conn.peer); if(estado==='espera'||estado==='fin') emitirSala(); });
@@ -451,7 +526,7 @@ function unirSala(){
   const falla=setTimeout(()=>{ lbMsg('No se pudo conectar. Revisa el código y tu conexión.'); salirSala(true); },12000);
   peer.on('open',id=>{
     miId=id; connAnf=peer.connect(PREF+c,{reliable:true});
-    connAnf.on('open',()=>{ clearTimeout(falla); esAnf=false; entrarSala(); connAnf.send({t:'hola',nombre:miNombre()}); });
+    connAnf.on('open',()=>{ clearTimeout(falla); esAnf=false; entrarSala(); connAnf.send({t:'hola',nombre:miNombre(),color:perfil.color,franja:perfil.franja}); });
     connAnf.on('data',m=>{
       if(m.t==='sala') aplicarSala(m);
       else if(m.t==='inicio'){ setDif(m.dif); empezar(m.frases); }
@@ -465,7 +540,7 @@ function unirSala(){
 function salirSala(silencio){
   try{ if(peer) peer.destroy(); }catch(e){}
   peer=null; conns=[]; connAnf=null; jug=[]; online=false; esAnf=false; miId=''; codigoSala='';
-  racers=NOMBRES.map(n=>({nombre:n}));
+  racers=racersSolo();
   if(!silencio) reiniciar();
   else { cancelAnimationFrame(raf); motorOff(); estado='espera'; construirPista(); $('lbInicio').hidden=false; $('lbSala').hidden=true; $('btnSalir').hidden=true; }
 }
@@ -484,9 +559,9 @@ function recibirProg(m){
 }
 function pintarTabla(){
   const r=rangos(true);
-  const fila=racers.map((x,i)=>({r:r[i],n:i?x.nombre:miNombre()+' (tú)',res:i?bots[i-1].res:miRes}));
+  const fila=racers.map((x,i)=>({r:r[i],n:(i?x.nombre:miNombre()+' (tú)'),c:x.color,res:i?bots[i-1].res:miRes}));
   fila.sort((a,b)=>a.r-b.r);
-  $('vTabla').innerHTML=fila.map(f=>`<li><span>${f.r}º ${esc(f.n)}</span><small>${f.res?`${f.res.ppm} PPM · ${f.res.tiempo} s`:'en carrera…'}</small></li>`).join('');
+  $('vTabla').innerHTML=fila.map(f=>`<li><span>${f.r}º <i class="dot" style="background:${okColor(f.c)?f.c:'#888'}"></i>${esc(f.n)}</span><small>${f.res?`${f.res.ppm} PPM · ${f.res.tiempo} s`:'en carrera…'}</small></li>`).join('');
 }
 $('btnOnline').addEventListener('click',abrirLobby);
 $('btnAtras').addEventListener('click',()=>{ if(online) salirSala(); else reiniciar(); });
@@ -515,7 +590,7 @@ $('entrada').addEventListener('input',e=>{
 $('entrada').addEventListener('keydown',e=>{ if(e.key==='Enter'){e.preventDefault(); if(estado==='corre'&&e.target.value.trim()) enviar();} });
 document.addEventListener('keydown',e=>{ if(e.key==='Escape' && estado!=='cuenta' && !online){ reiniciar(); } });
 function reiniciar(){
-  cancelAnimationFrame(raf); motorOff(); estado='espera'; $('pista').classList.remove('corre'); $('aviso').textContent=''; construirPista(); palabras=[]; $('palabras').innerHTML=''; $('entrada').value=''; $('entrada').disabled=true; $('prog').style.width='0';
+  cancelAnimationFrame(raf); motorOff(); bloquearPerfil(false); estado='espera'; $('pista').classList.remove('corre'); $('aviso').textContent=''; construirPista(); palabras=[]; $('palabras').innerHTML=''; $('entrada').value=''; $('entrada').disabled=true; $('prog').style.width='0';
   $('vTitulo').textContent='¿Listo para correr?'; $('vTexto').hidden=false; $('vTexto').textContent='Escribe cada oración completa y pulsa Enter para enviarla. Cuanto más rápido y limpio escribas, más rápido avanza tu coche. Cruza la meta antes que los rivales.';
   $('vRes').hidden=true; $('vTabla').hidden=true; $('lobby').hidden=true; $('caja').classList.remove('lobby-activo');
   $('btnGo').textContent='Empezar carrera'; $('btnGo').hidden=false; $('vBotones').hidden=false; $('btnOnline').hidden=false; $('btnSalir').hidden=true; $('velo').hidden=false;
@@ -529,8 +604,7 @@ $('dif').addEventListener('click',e=>{
   if(estado!=='espera') reiniciar();
 });
 window.addEventListener('resize',()=>{ if(estado!=='corre') moverAutos(estado==='fin'?[1,...bots.map(b=>b.p)]:racers.map(()=>0)); });
-$('nombre').value=leer('ct-nombre')||'';
-$('nombre').addEventListener('input',()=>guardar('ct-nombre',$('nombre').value));
+initPerfil(); racers=racersSolo();
 $('sonido').checked=leer('ct-sonido')!=='0';
 $('sonido').addEventListener('change',()=>{ guardar('ct-sonido',$('sonido').checked?'1':'0'); if(!$('sonido').checked) motorOff(); else if(estado==='corre') motorOn(); });
 construirPista(); actualizarRecord(); pintarRank();
