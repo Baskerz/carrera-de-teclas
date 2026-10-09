@@ -268,9 +268,8 @@ function carSVG(c, franja){
   return `<img alt="" src="${cv.toDataURL()}">`;
 }
 const FRANJAS=['#1a1c21','#ffffff','#ffffff','#ffffff'];
-let miOrden=0;
 function rangos(plFin){
-  const keys=[plFin? 2-miOrden*0.01-0.005 : hechos/totalCar, ...bots.map((b,i)=>{const o=llegada.indexOf(i+1); return o>=0? 2-o*0.01 : b.p;})];
+  const keys=[plFin? 2-Math.max(0,llegada.indexOf(0))*0.01 : hechos/totalCar, ...bots.map((b,i)=>{const o=llegada.indexOf(i+1); return o>=0? 2-o*0.01 : b.p;})];
   return keys.map((k,i)=>1+keys.filter((k2,j)=>k2>k||(k2===k&&j<i)).length);
 }
 function mostrarRangos(plFin){
@@ -370,7 +369,7 @@ function enviar(){
 function terminar(){
   estado='fin'; cancelAnimationFrame(raf); tFin=(performance.now()-t0)/1000; $('pista').classList.remove('corre'); $('aviso').textContent=''; motorOff();
   $('entrada').disabled=true;
-  miOrden=llegada.length;
+  llegada.push(0);
   const pos = rangos(true)[0];
   moverAutos([1,...bots.map(b=>b.p)]); mostrarRangos(true);
   const ppm=Math.round((aciertos/5)/(tFin/60));
