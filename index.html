@@ -77,6 +77,19 @@ label.chk{display:flex;gap:6px;align-items:center;cursor:pointer}
 kbd{font-family:var(--mono);background:var(--asfalto-2);border:1px solid #3a3e46;border-radius:3px;padding:0 5px}
 @media (prefers-reduced-motion:reduce){.auto{transition:none}.pista.corre .auto img,.pista.corre .auto::before,.sacude{animation:none}}
 @media (max-width:480px){.texto{padding:14px}.auto{width:120px;margin-top:-18px}.stats{gap:12px}}
+.rank{background:var(--asfalto-2);padding:16px 20px;display:flex;flex-direction:column;gap:12px}
+.rank-cab{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.rank h2{font-family:var(--display);font-weight:400;font-size:clamp(12px,2.2vw,16px);margin:0;line-height:1.4}
+.rank h2 span{color:var(--linea)}
+.nombre-j{font-size:14px;color:var(--apagado);display:flex;gap:8px;align-items:center}
+.nombre-j input{background:var(--asfalto);border:2px solid #3a3e46;color:var(--papel);font-family:var(--mono);font-size:15px;padding:6px 10px;width:12.5em;max-width:100%;border-radius:0}
+#rankLista{list-style:none;margin:0;padding:0;display:grid;gap:4px;font-family:var(--mono)}
+#rankLista li{display:grid;grid-template-columns:2.2em 1fr auto auto;gap:12px;padding:6px 10px;background:var(--asfalto);font-size:15px;align-items:baseline}
+#rankLista li b{color:var(--linea)}
+#rankLista li small{color:var(--apagado);font-size:12px}
+#rankLista li.nuevo{outline:2px solid var(--linea);outline-offset:-2px}
+#rankLista li.vacio{display:block;color:var(--apagado);font-family:var(--cuerpo)}
+#rankLista .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 </style>
 
 <div class="app">
@@ -114,16 +127,25 @@ kbd{font-family:var(--mono);background:var(--asfalto-2);border:1px solid #3a3e46
       <button data-d="dificil">Difícil</button>
     </div>
     <label class="chk"><input type="checkbox" id="tildes" checked> Ignorar tildes</label>
+    <label class="chk"><input type="checkbox" id="sonido" checked> Sonido</label>
   </div>
+  <section class="rank" aria-labelledby="rankTitulo">
+    <div class="rank-cab">
+      <h2 id="rankTitulo">Ranking <span id="rankDif">Normal</span></h2>
+      <label class="nombre-j" for="nombre">Tu nombre <input id="nombre" maxlength="14" placeholder="Jugador" autocomplete="off"></label>
+    </div>
+    <ol id="rankLista"></ol>
+    <p class="ayuda">El ranking se guarda en este navegador. La puntuación es PPM × precisión.</p>
+  </section>
   <p class="ayuda"><kbd>Enter</kbd> envía la oración · <kbd>Esc</kbd> reinicia · Si la oración tiene errores, el coche no avanza: corrígela y vuelve a enviarla.</p>
 </div>
 
 <script>
 
 const FRASES = {
-  facil: ["El sol sale por el este.","Me gusta tomar café por la mañana.","Mi perro corre por el parque.","La luna brilla en el cielo.","Hoy es un buen día para correr.","Los niños juegan en la plaza.","Voy a la playa con mis amigos.","El gato duerme sobre la mesa.","Ella lee un libro en el jardín.","Mañana vamos a visitar a la abuela.","El tren llega a las cinco de la tarde.","Compré pan fresco en la panadería."],
-  normal: ["Cuando llueve, la ciudad huele a tierra mojada y a recuerdos.","Aprender a escribir rápido requiere paciencia y mucha práctica diaria.","Los barcos salieron del puerto antes de que amaneciera.","Mi abuelo siempre decía que el tiempo es el mejor maestro.","Subimos la montaña despacio para disfrutar de cada paisaje.","Hay noches en las que el silencio dice más que mil palabras.","La biblioteca del pueblo guarda historias de hace cien años.","Si corres con el corazón, la meta siempre queda más cerca.","El mercado estaba lleno de frutas, flores y música alegre.","Un buen mecanógrafo no mira el teclado, escucha el ritmo de sus dedos."],
-  dificil: ["Aunque el camino era largo y estaba lleno de obstáculos, nunca dejó de avanzar hacia su destino.","El científico anotó cuidadosamente cada resultado, convencido de que el descubrimiento cambiaría la historia.","Entre las montañas, un río cristalino serpenteaba mientras el viento susurraba antiguas leyendas.","Después de tantos años, volvió a la casa donde había crecido y reconoció el aroma del pan recién hecho.","La velocidad no sirve de nada sin precisión: quien escribe con calma, siempre llega más lejos.","Cuando amaneció, los pescadores ya habían regresado con las redes llenas y las manos agrietadas por la sal.","Ningún campeón nació sabiéndolo todo; todos fueron, alguna vez, principiantes con muchas ganas de aprender.","En la plaza vieja, las campanas anunciaron el mediodía y las palomas levantaron el vuelo todas a la vez."]
+  facil: ["El sol sale por el este.","Me gusta tomar café por la mañana.","Mi perro corre por el parque.","La luna brilla en el cielo.","Hoy es un buen día para correr.","Los niños juegan en la plaza.","Voy a la playa con mis amigos.","El gato duerme sobre la mesa.","Ella lee un libro en el jardín.","Mañana vamos a visitar a la abuela.","El tren llega a las cinco de la tarde.","Compré pan fresco en la panadería.","Tengo una bicicleta roja.","¿Quieres jugar conmigo?","La sopa está muy caliente.","Mi hermano toca la guitarra.","Hace mucho frío en invierno.","El mar está tranquilo hoy.","Siempre desayuno con fruta.","Vamos al cine el sábado.","Esa flor huele muy bien.","Mi casa tiene un patio grande.","El autobús pasa cada diez minutos.","Me encanta bailar con música.","Abre la ventana, por favor.","Los pájaros cantan al amanecer.","Hoy cocinamos arroz con pollo.","El libro está sobre la silla.","Mi madre prepara un pastel.","Pinté un dibujo para mi amigo.","Nada es imposible si lo intentas.","La clase empieza a las ocho."],
+  normal: ["Cuando llueve, la ciudad huele a tierra mojada y a recuerdos.","Aprender a escribir rápido requiere paciencia y mucha práctica diaria.","Los barcos salieron del puerto antes de que amaneciera.","Mi abuelo siempre decía que el tiempo es el mejor maestro.","Subimos la montaña despacio para disfrutar de cada paisaje.","Hay noches en las que el silencio dice más que mil palabras.","La biblioteca del pueblo guarda historias de hace cien años.","Si corres con el corazón, la meta siempre queda más cerca.","El mercado estaba lleno de frutas, flores y música alegre.","Un buen mecanógrafo no mira el teclado, escucha el ritmo de sus dedos.","A quien madruga, Dios le ayuda, pero a mí me ayuda el café.","El que la sigue, la consigue, así que no te rindas tan pronto.","Más vale tarde que nunca, aunque temprano siempre es mejor.","En la estación, un músico tocaba el violín para nadie y para todos.","Cada mañana salgo a caminar y descubro una calle distinta.","La paciencia es amarga, pero sus frutos son muy dulces.","Mi vecino cultiva tomates, albahaca y una paciencia infinita.","El faro iluminaba la costa mientras las olas golpeaban las rocas.","Compramos entradas para el concierto de la próxima semana.","Perdón por llegar tarde, el tráfico estaba imposible esta mañana.","Los volcanes de Sudamérica forman parte del famoso Cinturón de Fuego.","La Tierra tarda trescientos sesenta y cinco días en rodear al Sol.","Nunca subestimes el poder de una buena noche de descanso.","Leer un buen libro es viajar sin moverse de la silla.","Después de la tormenta, el cielo se llenó de colores y de calma.","El maestro nos explicó que equivocarse es parte de aprender.","Mi tía hace las mejores empanadas de todo el barrio.","Las estrellas parecían tan cerca que casi podíamos tocarlas.","Hay que ser constante: gota a gota se llena el vaso.","El río bajaba crecido después de tres días de lluvia."],
+  dificil: ["Aunque el camino era largo y estaba lleno de obstáculos, nunca dejó de avanzar hacia su destino.","El científico anotó cuidadosamente cada resultado, convencido de que el descubrimiento cambiaría la historia.","Entre las montañas, un río cristalino serpenteaba mientras el viento susurraba antiguas leyendas.","Después de tantos años, volvió a la casa donde había crecido y reconoció el aroma del pan recién hecho.","La velocidad no sirve de nada sin precisión: quien escribe con calma, siempre llega más lejos.","Cuando amaneció, los pescadores ya habían regresado con las redes llenas y las manos agrietadas por la sal.","Ningún campeón nació sabiéndolo todo; todos fueron, alguna vez, principiantes con muchas ganas de aprender.","En la plaza vieja, las campanas anunciaron el mediodía y las palomas levantaron el vuelo todas a la vez.","El arquitecto dibujó un puente que, según decían los vecinos, uniría no solo dos orillas sino dos épocas.","Si alguna vez dudas de tu capacidad, recuerda que hasta el río más poderoso comenzó como una pequeña gota.","La noche del estreno, el teatro estaba tan silencioso que se oía el crujir de los programas entre las manos.","Entre el ruido de la ciudad y la prisa de la gente, encontró un rincón donde el tiempo parecía detenerse.","«No hay camino, se hace camino al andar», repetía el viejo profesor mientras señalaba el horizonte.","El ingeniero revisó los planos tres veces, porque sabía que un pequeño error podía costar muchísimo más tarde.","Los exploradores cruzaron el desierto durante siete días, guiándose únicamente por las estrellas y la intuición.","Durante la tormenta, el farero encendió la lámpara más grande y sostuvo la luz hasta que el último barco llegó a puerto.","Para escribir bien hay que leer mucho, pensar despacio y corregir sin miedo, una y otra vez, hasta que suene natural.","Aquella biblioteca olía a papel viejo y a madera, y cada estante parecía esconder un secreto esperando a ser descubierto.","Mientras el tren atravesaba los valles, ella escribía en su cuaderno todo lo que la ventana le contaba.","La cocinera probó la salsa, añadió una pizca de sal y sonrió: por fin sabía igual que la de su abuela.","Cuanto más rápido avanzas, más importante es no perder el equilibrio; lo mismo ocurre al escribir.","El éxito no llega de golpe: se construye con pequeños esfuerzos que se repiten, día tras día, sin que nadie los aplauda.","Los astrónomos aseguran que la luz de algunas estrellas viajó miles de años antes de llegar hasta nuestros ojos.","Al final de la carrera, lo que importa no es solo quién cruzó primero, sino cuánto aprendió cada uno por el camino."]
 };
 const DIF = {
   facil:  {n:4, bots:[16,21,26]},
@@ -136,9 +158,45 @@ const COLORES = ['#f2c230','#ff5a4f','#4aa8ff','#b58cff'];
 const $ = id => document.getElementById(id);
 let dif = 'normal', estado = 'espera', palabras = [], idx = 0, t0 = 0, raf = 0;
 let totalCar = 0, hechos = 0, aciertos = 0, errores = 0, bots = [], llegada = [], tFin = 0;
+// ---- Ranking local (top 8 por dificultad)
+const NOMBRE_DIF={facil:'Fácil',normal:'Normal',dificil:'Difícil'};
+function leerRank(d){ try{ const r=JSON.parse(leer('ct-rank-'+d)||'[]'); return Array.isArray(r)?r:[]; }catch(e){ return []; } }
+function esc(t){ return t.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function pintarRank(nuevoId){
+  $('rankDif').textContent=NOMBRE_DIF[dif];
+  const r=leerRank(dif);
+  $('rankLista').innerHTML = r.length ? r.map((e,i)=>`<li class="${e.id===nuevoId?'nuevo':''}"><span>${i+1}º</span><span class="n">${esc(e.nombre)}</span><b>${e.puntos}</b><small>${e.ppm} PPM · ${e.pre}%</small></li>`).join('') : '<li class="vacio">Aún no hay carreras en esta dificultad. Termina una para entrar al ranking.</li>';
+}
+function guardarRank(ppm,pre){
+  const nombre=($('nombre').value.trim()||'Jugador').slice(0,14);
+  const e={id:Date.now(),nombre,ppm,pre,puntos:Math.round(ppm*pre/100)};
+  const r=leerRank(dif); r.push(e); r.sort((a,b)=>b.puntos-a.puntos); r.length=Math.min(r.length,8);
+  guardar('ct-rank-'+dif,JSON.stringify(r));
+  const entro=r.some(x=>x.id===e.id);
+  pintarRank(e.id); return entro?r.findIndex(x=>x.id===e.id)+1:0;
+}
 const guardar = (k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
 const leer = k=>{try{return localStorage.getItem(k)}catch(e){return null}};
 
+// ---- Sonido (WebAudio, sin archivos)
+let ac=null, motor=null, motorG=null;
+const sonidoOn=()=>$('sonido').checked;
+function audio(){ try{ if(!ac) ac=new (window.AudioContext||window.webkitAudioContext)(); if(ac.state==='suspended') ac.resume(); }catch(e){ ac=null; } return ac; }
+function tono(f,d,tipo='square',v=.06,delay=0){
+  if(!sonidoOn()||!audio()) return;
+  const t=ac.currentTime+delay, o=ac.createOscillator(), g=ac.createGain();
+  o.type=tipo; o.frequency.setValueAtTime(f,t);
+  g.gain.setValueAtTime(v,t); g.gain.exponentialRampToValueAtTime(.0001,t+d);
+  o.connect(g).connect(ac.destination); o.start(t); o.stop(t+d+.02);
+}
+function motorOn(){
+  if(!sonidoOn()||!audio()||motor) return;
+  motor=ac.createOscillator(); motorG=ac.createGain(); motor.type='sawtooth'; motor.frequency.value=55; motorG.gain.value=.018;
+  const lp=ac.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=400;
+  motor.connect(lp).connect(motorG).connect(ac.destination); motor.start();
+}
+function motorOff(){ if(motor){ try{ motor.stop(); }catch(e){} motor=null; } }
+function motorVel(p){ if(motor) motor.frequency.setTargetAtTime(55+110*p,ac.currentTime,.1); }
 const norm = (s)=> $('tildes').checked ? s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase() : s;
 const sombra = h => { const n=parseInt(h.slice(1),16); const f=v=>Math.round(v*.62).toString(16).padStart(2,'0'); return '#'+f(n>>16&255)+f(n>>8&255)+f(n&255); };
 // Coche de drift (coupé japonés, 40x16 px): se dibuja con rectángulos para que cada píxel sea exacto.
@@ -219,16 +277,16 @@ function empezar(){
   $('sPos').textContent='–';
   $('sPpm').textContent='0'; $('sPre').textContent='100%'; $('vRes').hidden=true; $('btnGo').hidden=true;
   $('vTitulo').textContent='Prepárate'; $('vTexto').hidden=true;
-  estado='cuenta'; let n=3;
+  estado='cuenta'; let n=3; audio(); tono(440,.15);
   $('vTitulo').innerHTML=`<span class="cuenta">${n}</span>`;
   const iv=setInterval(()=>{
     n--;
-    if(n>0){ $('vTitulo').innerHTML=`<span class="cuenta">${n}</span>`; }
-    else { clearInterval(iv); $('velo').hidden=true; arrancar(); }
+    if(n>0){ $('vTitulo').innerHTML=`<span class="cuenta">${n}</span>`; tono(440,.15); }
+    else { clearInterval(iv); $('velo').hidden=true; tono(880,.45); arrancar(); }
   },800);
 }
 function arrancar(){
-  estado='corre'; t0=performance.now(); $('pista').classList.add('corre');
+  estado='corre'; t0=performance.now(); $('pista').classList.add('corre'); motorOn();
   const e=$('entrada'); e.disabled=false; e.focus();
   let last=t0;
   const loop=now=>{
@@ -240,7 +298,7 @@ function arrancar(){
       b.p += b.cps*(1+b.ruido*.25)*dt/totalCar;
       if(b.p>=1){ b.p=1; llegada.push(i+1); }
     });
-    moverAutos([hechos/totalCar,...bots.map(b=>b.p)]); mostrarRangos(false);
+    moverAutos([hechos/totalCar,...bots.map(b=>b.p)]); mostrarRangos(false); motorVel(hechos/totalCar);
     const secs=(now-t0)/1000;
     $('sPpm').textContent = secs>1 ? Math.round((aciertos/5)/(secs/60)) : 0;
     raf=requestAnimationFrame(loop);
@@ -252,21 +310,21 @@ function enviar(){
   const e=$('entrada'), w=palabras[idx], t=e.value.trim();
   if(!t) return;
   if(norm(t)!==norm(w)){
-    errores++;
+    errores++; tono(130,.28,'sawtooth',.09);
     e.classList.remove('sacude'); void e.offsetWidth; e.classList.add('sacude');
     $('aviso').textContent='La oración tiene errores. Corrígela y vuelve a enviarla con Enter.';
     clearTimeout(tAviso); tAviso=setTimeout(()=>$('aviso').textContent='',1500);
     $('sPre').textContent=Math.round(idx/(idx+errores)*100)+'%';
     pintar(); return;
   }
-  resultados[idx]=true; aciertos+=w.length+1;
+  resultados[idx]=true; tono(660,.09,'square',.06); tono(990,.14,'square',.06,.09); aciertos+=w.length+1;
   hechos += w.length+1; idx++; e.value=''; e.classList.remove('mal');
   $('sPre').textContent=Math.round(idx/(idx+errores)*100)+'%';
   $('prog').style.width = (idx/palabras.length*100)+'%';
   if(idx>=palabras.length){ terminar(); } else pintar();
 }
 function terminar(){
-  estado='fin'; cancelAnimationFrame(raf); tFin=(performance.now()-t0)/1000; $('pista').classList.remove('corre'); $('aviso').textContent='';
+  estado='fin'; cancelAnimationFrame(raf); tFin=(performance.now()-t0)/1000; $('pista').classList.remove('corre'); $('aviso').textContent=''; motorOff();
   $('entrada').disabled=true;
   const pos = rangos(true)[0];
   moverAutos([1,...bots.map(b=>b.p)]); mostrarRangos(true);
@@ -275,10 +333,12 @@ function terminar(){
   const rec=+(leer('ct-rec-'+dif)||0), nuevo=ppm>rec;
   if(nuevo) guardar('ct-rec-'+dif,String(ppm));
   actualizarRecord();
+  const lugar=guardarRank(ppm,pre);
+  if(pos===1) [523,659,784,1047].forEach((f,i)=>tono(f,.22,'square',.07,i*.13)); else [392,330,262].forEach((f,i)=>tono(f,.28,'triangle',.09,i*.18));
   $('sPpm').textContent=ppm; $('sPre').textContent=pre+'%';
   const titulos=['','¡Victoria!','Segundo puesto','Tercer puesto','Último puesto'];
   $('vTitulo').textContent=titulos[pos]; $('vTexto').hidden=false;
-  $('vTexto').textContent = pos===1 ? (nuevo?'¡Y además nuevo récord en esta dificultad!':'Cruzaste la meta primero.') : 'Los rivales llegaron antes. Prueba de nuevo y mantén el ritmo.';
+  $('vTexto').textContent = pos===1 ? (nuevo?'¡Y además nuevo récord en esta dificultad!':'Cruzaste la meta primero.')+(lugar?` Quedaste ${lugar}º en el ranking.`:'') : 'Los rivales llegaron antes. Prueba de nuevo y mantén el ritmo.';
   $('vRes').hidden=false;
   $('vRes').innerHTML=`<div>Velocidad<b>${ppm} PPM</b></div><div>Precisión<b>${pre}%</b></div><div>Tiempo<b>${tFin.toFixed(1)} s</b></div>`;
   $('btnGo').textContent='Correr otra vez'; $('btnGo').hidden=false; $('velo').hidden=false; $('btnGo').focus();
@@ -290,12 +350,13 @@ $('entrada').addEventListener('input',e=>{
   if(estado!=='corre') return;
   const w=norm(palabras[idx]), t=norm(v);
   e.target.classList.toggle('mal', t.length>0 && !w.startsWith(t));
+  if(e.inputType==='insertText') tono(w.startsWith(t)?1000:260,.03,'square',.025);
   pintar();
 });
 $('entrada').addEventListener('keydown',e=>{ if(e.key==='Enter'){e.preventDefault(); if(estado==='corre'&&e.target.value.trim()) enviar();} });
 document.addEventListener('keydown',e=>{ if(e.key==='Escape' && estado!=='cuenta'){ reiniciar(); } });
 function reiniciar(){
-  cancelAnimationFrame(raf); estado='espera'; $('pista').classList.remove('corre'); $('aviso').textContent=''; construirPista(); palabras=[]; $('palabras').innerHTML=''; $('entrada').value=''; $('entrada').disabled=true; $('prog').style.width='0';
+  cancelAnimationFrame(raf); motorOff(); estado='espera'; $('pista').classList.remove('corre'); $('aviso').textContent=''; construirPista(); palabras=[]; $('palabras').innerHTML=''; $('entrada').value=''; $('entrada').disabled=true; $('prog').style.width='0';
   $('vTitulo').textContent='¿Listo para correr?'; $('vTexto').hidden=false; $('vTexto').textContent='Escribe cada oración completa y pulsa Enter para enviarla. Cuanto más rápido y limpio escribas, más rápido avanza tu coche. Cruza la meta antes que los rivales.';
   $('vRes').hidden=true; $('btnGo').textContent='Empezar carrera'; $('btnGo').hidden=false; $('velo').hidden=false;
 }
@@ -303,10 +364,14 @@ $('btnGo').addEventListener('click',empezar);
 $('dif').addEventListener('click',e=>{
   const b=e.target.closest('button'); if(!b||estado==='cuenta') return;
   dif=b.dataset.d; [...$('dif').children].forEach(x=>x.classList.toggle('sel',x===b));
-  actualizarRecord(); if(estado!=='espera') reiniciar();
+  actualizarRecord(); pintarRank(); if(estado!=='espera') reiniciar();
 });
 window.addEventListener('resize',()=>{ if(estado!=='corre') moverAutos(estado==='fin'?[1,...bots.map(b=>b.p)]:[0,0,0,0]); });
-construirPista(); actualizarRecord();
+$('nombre').value=leer('ct-nombre')||'';
+$('nombre').addEventListener('input',()=>guardar('ct-nombre',$('nombre').value));
+$('sonido').checked=leer('ct-sonido')!=='0';
+$('sonido').addEventListener('change',()=>{ guardar('ct-sonido',$('sonido').checked?'1':'0'); if(!$('sonido').checked) motorOff(); else if(estado==='corre') motorOn(); });
+construirPista(); actualizarRecord(); pintarRank();
 $('palabras').textContent='La carrera empieza cuando pulses el botón.';
 </script>
 
