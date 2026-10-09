@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Carrera de Teclas</title>
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Barlow:wght@400;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
 <style>
 /* Layout: una pista de 4 carriles arriba, el texto a escribir debajo, panel de resultados superpuesto. Look único oscuro (asfalto). */
@@ -30,7 +31,7 @@ h1 span{color:var(--linea)}
 .carril.yo .nombre{color:var(--linea)}
 .meta{position:absolute;right:0;top:0;bottom:0;width:24px;background:repeating-conic-gradient(var(--papel) 0 25%,#111 0 50%) 0 0/12px 12px}
 .auto{position:absolute;left:0;width:160px;top:50%;margin-top:-24px;filter:drop-shadow(0 6px 0 rgba(0,0,0,.35))}
-#auto0{transition:left .35s steps(6)}
+#auto0,.pista.online .auto{transition:left .35s steps(6)}
 .auto img{width:100%;display:block;image-rendering:pixelated}
 .pista.corre .auto img{animation:bote .32s steps(1) infinite}
 .pista.corre .carril:nth-child(2n) .auto img{animation-duration:.4s}
@@ -90,6 +91,19 @@ kbd{font-family:var(--mono);background:var(--asfalto-2);border:1px solid #3a3e46
 #rankLista li.nuevo{outline:2px solid var(--linea);outline-offset:-2px}
 #rankLista li.vacio{display:block;color:var(--apagado);font-family:var(--cuerpo)}
 #rankLista .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.botones{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.texto.lobby-activo{min-height:430px}
+.lobby{display:flex;flex-direction:column;gap:14px;align-items:center;width:100%;max-width:520px}
+.lobby[hidden],.lobby>div[hidden]{display:none!important}
+.lobby>div{display:flex;flex-direction:column;gap:12px;align-items:center;width:100%}
+.lb-fila{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
+.lobby input{background:var(--asfalto);border:2px solid #3a3e46;color:var(--papel);font-family:var(--display);font-size:16px;padding:10px 12px;width:9em;text-align:center;text-transform:uppercase;border-radius:0}
+.codigo{font-family:var(--display);font-size:clamp(26px,7vw,44px);letter-spacing:.18em;color:var(--linea);user-select:all}
+.lb-jug,.tabla{list-style:none;margin:0;padding:0;display:grid;gap:4px;width:100%;font-family:var(--mono);text-align:left}
+.lb-jug li,.tabla li{background:var(--asfalto);padding:6px 10px;display:flex;justify-content:space-between;gap:10px;font-size:15px}
+.lb-jug li small,.tabla li small{color:var(--apagado)}
+.tabla{max-width:520px}
+#lbMsg{min-height:1.3em;color:var(--mal);font-weight:700;font-size:14px}
 </style>
 
 <div class="app">
@@ -115,7 +129,32 @@ kbd{font-family:var(--mono);background:var(--asfalto-2);border:1px solid #3a3e46
       <h2 id="vTitulo">¿Listo para correr?</h2>
       <p id="vTexto">Escribe cada oración completa y pulsa Enter para enviarla. Cuanto más rápido y limpio escribas, más rápido avanza tu coche. Cruza la meta antes que los rivales.</p>
       <div class="res" id="vRes" hidden></div>
-      <button class="go" id="btnGo">Empezar carrera</button>
+      <ol class="tabla" id="vTabla" hidden></ol>
+      <div class="botones" id="vBotones">
+        <button class="go" id="btnGo">Empezar carrera</button>
+        <button id="btnOnline">Jugar online</button>
+        <button id="btnSalir" hidden>Salir de la sala</button>
+      </div>
+      <div class="lobby" id="lobby" hidden>
+        <div id="lbInicio">
+          <button class="go" id="btnCrear">Crear sala</button>
+          <span>o entra a una sala con código</span>
+          <div class="lb-fila">
+            <input id="codigo" maxlength="5" placeholder="CÓDIGO" autocomplete="off" aria-label="Código de la sala">
+            <button id="btnUnir">Unirse</button>
+          </div>
+        </div>
+        <div id="lbSala" hidden>
+          <span>Código de la sala</span>
+          <div class="codigo" id="lbCodigo"></div>
+          <div class="lb-fila"><button id="btnCopiar">Copiar enlace</button></div>
+          <ul class="lb-jug" id="lbJug"></ul>
+          <p id="lbEstado"></p>
+          <button class="go" id="btnIniciar">Iniciar carrera</button>
+        </div>
+        <p id="lbMsg" role="status"></p>
+        <div><button id="btnAtras">Volver</button></div>
+      </div>
     </div>
   </div>
 
@@ -153,6 +192,7 @@ const DIF = {
   dificil:{n:7, bots:[38,47,56]}
 };
 const NOMBRES = ['Tú','Relámpago','Cometa','Turbo'];
+let racers = NOMBRES.map(n=>({nombre:n}));
 const COLORES = ['#f2c230','#ff5a4f','#4aa8ff','#b58cff'];
 
 const $ = id => document.getElementById(id);
@@ -228,8 +268,9 @@ function carSVG(c, franja){
   return `<img alt="" src="${cv.toDataURL()}">`;
 }
 const FRANJAS=['#1a1c21','#ffffff','#ffffff','#ffffff'];
+let miOrden=0;
 function rangos(plFin){
-  const keys=[plFin? 2-llegada.length*0.01-0.005 : hechos/totalCar, ...bots.map((b,i)=>{const o=llegada.indexOf(i+1); return o>=0? 2-o*0.01 : b.p;})];
+  const keys=[plFin? 2-miOrden*0.01-0.005 : hechos/totalCar, ...bots.map((b,i)=>{const o=llegada.indexOf(i+1); return o>=0? 2-o*0.01 : b.p;})];
   return keys.map((k,i)=>1+keys.filter((k2,j)=>k2>k||(k2===k&&j<i)).length);
 }
 function mostrarRangos(plFin){
@@ -239,8 +280,9 @@ function mostrarRangos(plFin){
 }
 
 function construirPista(){
-  $('pista').innerHTML = NOMBRES.map((n,i)=>`<div class="carril ${i?'':'yo'}"><span class="nombre">${n}</span><span class="pos" id="pos${i}"></span><div class="meta"></div><div class="auto" id="auto${i}">${carSVG(COLORES[i],FRANJAS[i])}</div></div>`).join('');
-  moverAutos([0,0,0,0]);
+  $('pista').classList.toggle('online',online);
+  $('pista').innerHTML = racers.map((r,i)=>`<div class="carril ${i?'':'yo'}"><span class="nombre">${esc(r.nombre)}</span><span class="pos" id="pos${i}"></span><div class="meta"></div><div class="auto" id="auto${i}">${carSVG(COLORES[i],FRANJAS[i])}</div></div>`).join('');
+  moverAutos(racers.map(()=>0));
 }
 function moverAutos(p){
   const ancho = $('pista').clientWidth - $('auto0').offsetWidth - 24;
@@ -268,12 +310,14 @@ function pintar(){
 }
 let resultados = [];
 
-function empezar(){
-  palabras = elegirPalabras(); idx=0; resultados=[]; hechos=0; aciertos=0; errores=0; $('aviso').textContent=''; llegada=[]; tFin=0;
+function empezar(frasesFijas){
+  palabras = frasesFijas || elegirPalabras(); idx=0; resultados=[]; hechos=0; aciertos=0; errores=0; $('aviso').textContent=''; llegada=[]; tFin=0;
   totalCar = palabras.reduce((a,w)=>a+w.length+1,0);
-  bots = DIF[dif].bots.map(w=>({cps:w*5/60, p:0, f:0, ruido:0}));
+  if(online){ const otros=jug.filter(j=>j.id!==miId); bots=otros.map(j=>({id:j.id,nombre:j.nombre,p:0,res:null})); racers=[{nombre:'Tú'},...bots]; miRes=null; }
+  else { bots = DIF[dif].bots.map(w=>({cps:w*5/60, p:0, f:0, ruido:0})); racers = NOMBRES.map(n=>({nombre:n})); }
+  $('lobby').hidden=true; $('vTabla').hidden=true; $('vBotones').hidden=true; $('caja').classList.remove('lobby-activo');
   construirPista(); $('entrada').value=''; $('prog').style.width='0'; pintar();
-  for(let i=0;i<4;i++) $('pos'+i).textContent='';
+  racers.forEach((_,i)=>$('pos'+i).textContent='');
   $('sPos').textContent='–';
   $('sPpm').textContent='0'; $('sPre').textContent='100%'; $('vRes').hidden=true; $('btnGo').hidden=true;
   $('vTitulo').textContent='Prepárate'; $('vTexto').hidden=true;
@@ -293,7 +337,7 @@ function arrancar(){
     if(estado!=='corre') return;
     const dt=(now-last)/1000; last=now;
     bots.forEach((b,i)=>{
-      if(b.p>=1) return;
+      if(!b.cps||b.p>=1) return;
       b.ruido += (Math.random()-.5)*.6; b.ruido*=.97;
       b.p += b.cps*(1+b.ruido*.25)*dt/totalCar;
       if(b.p>=1){ b.p=1; llegada.push(i+1); }
@@ -318,7 +362,7 @@ function enviar(){
     pintar(); return;
   }
   resultados[idx]=true; tono(660,.09,'square',.06); tono(990,.14,'square',.06,.09); aciertos+=w.length+1;
-  hechos += w.length+1; idx++; e.value=''; e.classList.remove('mal');
+  hechos += w.length+1; idx++; e.value=''; e.classList.remove('mal'); enviarProg({p:hechos/totalCar});
   $('sPre').textContent=Math.round(idx/(idx+errores)*100)+'%';
   $('prog').style.width = (idx/palabras.length*100)+'%';
   if(idx>=palabras.length){ terminar(); } else pintar();
@@ -326,6 +370,7 @@ function enviar(){
 function terminar(){
   estado='fin'; cancelAnimationFrame(raf); tFin=(performance.now()-t0)/1000; $('pista').classList.remove('corre'); $('aviso').textContent=''; motorOff();
   $('entrada').disabled=true;
+  miOrden=llegada.length;
   const pos = rangos(true)[0];
   moverAutos([1,...bots.map(b=>b.p)]); mostrarRangos(true);
   const ppm=Math.round((aciertos/5)/(tFin/60));
@@ -341,8 +386,123 @@ function terminar(){
   $('vTexto').textContent = pos===1 ? (nuevo?'¡Y además nuevo récord en esta dificultad!':'Cruzaste la meta primero.')+(lugar?` Quedaste ${lugar}º en el ranking.`:'') : 'Los rivales llegaron antes. Prueba de nuevo y mantén el ritmo.';
   $('vRes').hidden=false;
   $('vRes').innerHTML=`<div>Velocidad<b>${ppm} PPM</b></div><div>Precisión<b>${pre}%</b></div><div>Tiempo<b>${tFin.toFixed(1)} s</b></div>`;
-  $('btnGo').textContent='Correr otra vez'; $('btnGo').hidden=false; $('velo').hidden=false; $('btnGo').focus();
+  $('btnGo').textContent='Correr otra vez'; $('btnGo').hidden=false; $('vBotones').hidden=false; $('btnOnline').hidden=online; $('btnSalir').hidden=!online; $('velo').hidden=false;
+  if(online){
+    miRes={ppm,pre,tiempo:+tFin.toFixed(1)}; enviarProg({p:1,fin:true,...miRes});
+    $('btnGo').textContent='Otra carrera'; $('btnGo').hidden=!esAnf;
+    if(!esAnf) $('vTexto').textContent+=' Espera a que el anfitrión inicie otra carrera.';
+    $('vTabla').hidden=false; pintarTabla();
+  } else $('btnGo').focus();
 }
+function setDif(d){ dif=d; [...$('dif').children].forEach(x=>x.classList.toggle('sel',x.dataset.d===d)); actualizarRecord(); pintarRank(); }
+
+// ---- Online (PeerJS): el anfitrión crea la sala y retransmite el progreso de todos
+const PREF='carrera-teclas-';
+let online=false, esAnf=false, peer=null, conns=[], connAnf=null, miId='', jug=[], codigoSala='', miRes=null;
+const miNombre=()=>($('nombre').value.trim()||'Jugador').slice(0,14);
+const lbMsg=t=>{ $('lbMsg').textContent=t||''; };
+function codigoNuevo(){ const a='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let c=''; for(let i=0;i<5;i++) c+=a[Math.floor(Math.random()*a.length)]; return c; }
+function abrirLobby(){
+  $('vTitulo').textContent='Carrera online'; $('vTexto').hidden=true; $('vRes').hidden=true; $('vBotones').hidden=true; $('vTabla').hidden=true;
+  $('lobby').hidden=false; $('lbInicio').hidden=false; $('lbSala').hidden=true; lbMsg(''); $('caja').classList.add('lobby-activo'); $('velo').hidden=false;
+  if(typeof Peer==='undefined') lbMsg('No se pudo cargar el modo online. Revisa tu conexión y recarga la página.');
+}
+function difundir(m,excepto){ conns.forEach(c=>{ if(c.conn!==excepto && c.conn.open) c.conn.send(m); }); }
+function enviarProg(m){
+  if(!online) return; m.t='prog';
+  if(esAnf){ m.id=miId; difundir(m); } else if(connAnf && connAnf.open) connAnf.send(m);
+}
+function emitirSala(){ const m={t:'sala',jug,dif}; difundir(m); aplicarSala(m); }
+function aplicarSala(m){
+  jug=m.jug; if(m.dif && m.dif!==dif) setDif(m.dif);
+  $('lbJug').innerHTML=jug.map((j,i)=>`<li><span>${esc(j.nombre)}${j.id===miId?' (tú)':''}</span><small>${i===0?'anfitrión':'jugador'}</small></li>`).join('');
+  $('lbEstado').textContent = esAnf ? (jug.length<2?'Espera a que entre al menos otro jugador.':`Dificultad: ${NOMBRE_DIF[dif]}. Puedes cambiarla abajo.`) : `Dificultad: ${NOMBRE_DIF[dif]}. Esperando al anfitrión…`;
+  $('btnIniciar').hidden=!esAnf; $('btnIniciar').disabled=jug.length<2;
+  if(estado==='espera'){ racers=[{nombre:'Tú'},...jug.filter(j=>j.id!==miId)]; construirPista(); }
+}
+function entrarSala(){
+  online=true; $('lbInicio').hidden=true; $('lbSala').hidden=false; $('lbCodigo').textContent=codigoSala; lbMsg('');
+  $('btnSalir').hidden=false;
+}
+function crearSala(){
+  if(typeof Peer==='undefined'){ lbMsg('No se pudo cargar el modo online.'); return; }
+  lbMsg('Creando sala…'); codigoSala=codigoNuevo();
+  peer=new Peer(PREF+codigoSala);
+  peer.on('open',id=>{ miId=id; esAnf=true; jug=[{id,nombre:miNombre()}]; entrarSala(); emitirSala(); });
+  peer.on('connection',conn=>{
+    conn.on('data',m=>{
+      if(m.t==='hola'){
+        if(jug.length>=4 || estado==='cuenta' || estado==='corre'){ conn.send({t:'rechazo',motivo: jug.length>=4?'La sala está llena (máximo 4).':'La carrera ya empezó. Espera a la siguiente.'}); setTimeout(()=>conn.close(),400); return; }
+        conns.push({conn,id:conn.peer}); jug.push({id:conn.peer,nombre:String(m.nombre||'Jugador').slice(0,14)}); emitirSala();
+      } else if(m.t==='prog'){ const x={...m,id:conn.peer}; difundir(x,conn); recibirProg(x); }
+    });
+    conn.on('close',()=>{ conns=conns.filter(c=>c.conn!==conn); jug=jug.filter(j=>j.id!==conn.peer); if(estado==='espera'||estado==='fin') emitirSala(); });
+  });
+  peer.on('error',e=>{
+    if(e.type==='unavailable-id'){ peer.destroy(); crearSala(); return; }
+    lbMsg('No se pudo crear la sala. Revisa tu conexión.'); salirSala(true);
+  });
+}
+function unirSala(){
+  const c=$('codigo').value.trim().toUpperCase();
+  if(c.length!==5){ lbMsg('El código tiene 5 caracteres.'); return; }
+  if(typeof Peer==='undefined'){ lbMsg('No se pudo cargar el modo online.'); return; }
+  lbMsg('Conectando…'); codigoSala=c;
+  peer=new Peer();
+  const falla=setTimeout(()=>{ lbMsg('No se pudo conectar. Revisa el código y tu conexión.'); salirSala(true); },12000);
+  peer.on('open',id=>{
+    miId=id; connAnf=peer.connect(PREF+c,{reliable:true});
+    connAnf.on('open',()=>{ clearTimeout(falla); esAnf=false; entrarSala(); connAnf.send({t:'hola',nombre:miNombre()}); });
+    connAnf.on('data',m=>{
+      if(m.t==='sala') aplicarSala(m);
+      else if(m.t==='inicio'){ setDif(m.dif); empezar(m.frases); }
+      else if(m.t==='prog') recibirProg(m);
+      else if(m.t==='rechazo'){ salirSala(true); abrirLobby(); lbMsg(m.motivo); }
+    });
+    connAnf.on('close',()=>{ if(online){ salirSala(true); abrirLobby(); lbMsg('El anfitrión cerró la sala.'); } });
+  });
+  peer.on('error',e=>{ clearTimeout(falla); lbMsg(e.type==='peer-unavailable'?'No existe una sala con ese código.':'No se pudo conectar. Revisa tu conexión.'); salirSala(true); });
+}
+function salirSala(silencio){
+  try{ if(peer) peer.destroy(); }catch(e){}
+  peer=null; conns=[]; connAnf=null; jug=[]; online=false; esAnf=false; miId=''; codigoSala='';
+  racers=NOMBRES.map(n=>({nombre:n}));
+  if(!silencio) reiniciar();
+  else { cancelAnimationFrame(raf); motorOff(); estado='espera'; construirPista(); $('lbInicio').hidden=false; $('lbSala').hidden=true; $('btnSalir').hidden=true; }
+}
+function iniciarOnline(){
+  if(!esAnf||jug.length<2) return;
+  const frases=elegirPalabras(); difundir({t:'inicio',frases,dif}); empezar(frases);
+}
+function recibirProg(m){
+  const i=bots.findIndex(b=>b.id===m.id); if(i<0) return;
+  const b=bots[i]; b.p=Math.max(b.p,Math.min(1,m.p));
+  if(m.fin){ b.p=1; b.res={ppm:m.ppm,pre:m.pre,tiempo:m.tiempo}; if(!llegada.includes(i+1)) llegada.push(i+1); }
+  if(estado==='corre'||estado==='fin'){
+    moverAutos([estado==='fin'?1:hechos/totalCar,...bots.map(x=>x.p)]); mostrarRangos(estado==='fin');
+    if(estado==='fin') pintarTabla();
+  }
+}
+function pintarTabla(){
+  const r=rangos(true);
+  const fila=racers.map((x,i)=>({r:r[i],n:i?x.nombre:miNombre()+' (tú)',res:i?bots[i-1].res:miRes}));
+  fila.sort((a,b)=>a.r-b.r);
+  $('vTabla').innerHTML=fila.map(f=>`<li><span>${f.r}º ${esc(f.n)}</span><small>${f.res?`${f.res.ppm} PPM · ${f.res.tiempo} s`:'en carrera…'}</small></li>`).join('');
+}
+$('btnOnline').addEventListener('click',abrirLobby);
+$('btnAtras').addEventListener('click',()=>{ if(online) salirSala(); else reiniciar(); });
+$('btnSalir').addEventListener('click',()=>salirSala());
+$('btnCrear').addEventListener('click',crearSala);
+$('btnUnir').addEventListener('click',unirSala);
+$('codigo').addEventListener('keydown',e=>{ if(e.key==='Enter') unirSala(); });
+$('btnIniciar').addEventListener('click',iniciarOnline);
+$('btnCopiar').addEventListener('click',()=>{
+  const url=location.origin+location.pathname+'?sala='+codigoSala;
+  const ok=()=>{ $('btnCopiar').textContent='¡Copiado!'; setTimeout(()=>$('btnCopiar').textContent='Copiar enlace',1500); };
+  try{ navigator.clipboard.writeText(url).then(ok,()=>lbMsg(url)); }catch(e){ lbMsg(url); }
+});
+try{ const sp=new URLSearchParams(location.search).get('sala'); if(sp){ abrirLobby(); $('codigo').value=sp.slice(0,5).toUpperCase(); } }catch(e){}
+
 function actualizarRecord(){ $('sRec').textContent = leer('ct-rec-'+dif)||0; }
 
 $('entrada').addEventListener('input',e=>{
@@ -354,19 +514,22 @@ $('entrada').addEventListener('input',e=>{
   pintar();
 });
 $('entrada').addEventListener('keydown',e=>{ if(e.key==='Enter'){e.preventDefault(); if(estado==='corre'&&e.target.value.trim()) enviar();} });
-document.addEventListener('keydown',e=>{ if(e.key==='Escape' && estado!=='cuenta'){ reiniciar(); } });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape' && estado!=='cuenta' && !online){ reiniciar(); } });
 function reiniciar(){
   cancelAnimationFrame(raf); motorOff(); estado='espera'; $('pista').classList.remove('corre'); $('aviso').textContent=''; construirPista(); palabras=[]; $('palabras').innerHTML=''; $('entrada').value=''; $('entrada').disabled=true; $('prog').style.width='0';
   $('vTitulo').textContent='¿Listo para correr?'; $('vTexto').hidden=false; $('vTexto').textContent='Escribe cada oración completa y pulsa Enter para enviarla. Cuanto más rápido y limpio escribas, más rápido avanza tu coche. Cruza la meta antes que los rivales.';
-  $('vRes').hidden=true; $('btnGo').textContent='Empezar carrera'; $('btnGo').hidden=false; $('velo').hidden=false;
+  $('vRes').hidden=true; $('vTabla').hidden=true; $('lobby').hidden=true; $('caja').classList.remove('lobby-activo');
+  $('btnGo').textContent='Empezar carrera'; $('btnGo').hidden=false; $('vBotones').hidden=false; $('btnOnline').hidden=false; $('btnSalir').hidden=true; $('velo').hidden=false;
 }
-$('btnGo').addEventListener('click',empezar);
+$('btnGo').addEventListener('click',()=>{ if(online){ if(esAnf) iniciarOnline(); } else empezar(); });
 $('dif').addEventListener('click',e=>{
   const b=e.target.closest('button'); if(!b||estado==='cuenta') return;
-  dif=b.dataset.d; [...$('dif').children].forEach(x=>x.classList.toggle('sel',x===b));
-  actualizarRecord(); pintarRank(); if(estado!=='espera') reiniciar();
+  if(online && (!esAnf || estado==='corre')) return;
+  setDif(b.dataset.d);
+  if(online){ emitirSala(); return; }
+  if(estado!=='espera') reiniciar();
 });
-window.addEventListener('resize',()=>{ if(estado!=='corre') moverAutos(estado==='fin'?[1,...bots.map(b=>b.p)]:[0,0,0,0]); });
+window.addEventListener('resize',()=>{ if(estado!=='corre') moverAutos(estado==='fin'?[1,...bots.map(b=>b.p)]:racers.map(()=>0)); });
 $('nombre').value=leer('ct-nombre')||'';
 $('nombre').addEventListener('input',()=>guardar('ct-nombre',$('nombre').value));
 $('sonido').checked=leer('ct-sonido')!=='0';
