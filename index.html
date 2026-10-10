@@ -115,6 +115,10 @@ kbd{font-family:var(--mono);background:var(--asfalto-2);border:1px solid #3a3e46
 .sw{width:30px;height:30px;padding:0;border:3px solid #0d0e11;box-shadow:none;border-radius:0}
 .sw[aria-pressed="true"]{outline:3px solid var(--papel);outline-offset:2px}
 .sw:active{transform:none;box-shadow:none}
+.mod{width:64px;height:32px;padding:2px;border:3px solid #0d0e11;border-radius:0;box-shadow:none;background:#2a2d34;display:flex;align-items:center;justify-content:center}
+.mod img{width:100%;image-rendering:pixelated;display:block}
+.mod[aria-pressed="true"]{outline:3px solid var(--papel);outline-offset:2px}
+.mod:active{transform:none;box-shadow:none}
 .dot{display:inline-block;width:10px;height:10px;margin-right:6px;border:1px solid #0d0e11;vertical-align:baseline}
 .conf{position:absolute;top:-10px;width:8px;height:8px;pointer-events:none;z-index:6;animation:cae 2.6s steps(14) forwards}
 @keyframes cae{to{transform:translateY(460px) rotate(200deg)}}
@@ -176,6 +180,7 @@ kbd{font-family:var(--mono);background:var(--asfalto-2);border:1px solid #3a3e46
     <div class="prev" id="prevCoche"></div>
     <div class="pf-campos">
       <label class="pf-nombre" for="nombre">Nombre del piloto <input id="nombre" maxlength="14" placeholder="Jugador" autocomplete="off"></label>
+      <div class="pf-fila"><span>Modelo</span><div class="sws" id="swModelo" role="group" aria-label="Modelo de coche"></div></div>
       <div class="pf-fila"><span>Color del coche</span><div class="sws" id="swColor" role="group" aria-label="Color del coche"></div></div>
       <div class="pf-fila"><span>Color de la franja</span><div class="sws" id="swFranja" role="group" aria-label="Color de la franja"></div></div>
     </div>
@@ -218,7 +223,8 @@ let racers = [];
 const PALETA=[['#f2c230','Amarillo'],['#ff5a4f','Rojo'],['#4aa8ff','Azul'],['#b58cff','Morado'],['#6fd08c','Verde'],['#ff8a3d','Naranja'],['#ff6fb5','Rosa'],['#eceae3','Blanco']];
 const FRANJA_OPC=[['#1a1c21','Negro'],['#ffffff','Blanco'],['#ff3b30','Rojo'],['#4aa8ff','Azul']];
 const okColor=c=>typeof c==='string'&&/^#[0-9a-f]{6}$/i.test(c);
-let perfil={color:'#f2c230',franja:'#1a1c21'};
+let perfil={color:'#f2c230',franja:'#1a1c21',modelo:0};
+const okModelo=m=>Number.isInteger(m)&&m>=0&&m<5;
 
 const $ = id => document.getElementById(id);
 let dif = 'normal', estado = 'espera', palabras = [], idx = 0, t0 = 0, raf = 0;
@@ -264,32 +270,52 @@ function motorOff(){ if(motor){ try{ motor.stop(); }catch(e){} motor=null; } }
 function motorVel(p){ if(motor) motor.frequency.setTargetAtTime(55+110*p,ac.currentTime,.1); }
 const norm = (s)=> $('tildes').checked ? s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase() : s;
 const sombra = h => { const n=parseInt(h.slice(1),16); const f=v=>Math.round(v*.62).toString(16).padStart(2,'0'); return '#'+f(n>>16&255)+f(n>>8&255)+f(n&255); };
-// Coche de drift (coupé japonés, 40x16 px): se dibuja con rectángulos para que cada píxel sea exacto.
-function carSVG(c, franja){
+// Coches de drift en pixel art (40x16 px): se dibujan con rectángulos para que cada píxel sea exacto.
+// Cinco modelos: cada uno cambia alerón y cabina; carrocería y ruedas son comunes.
+const MODELOS=['Coupé','Roadster','Sedán','GT','Neón'];
+const CAB=[
+  {L:[19,17,15,13,11],R:[27,29,31,33,35],w:2,p:24},   // 0 coupé fastback
+  {L:[18,16,14],R:[27,30,34],w:1,p:23},               // 1 roadster bajo y largo
+  {L:[16,15,14,13,12],R:[26,28,30,32,34],w:2,p:22},   // 2 sedán de techo alto
+  {L:[20,18,16,14],R:[27,30,33,35],w:1,p:25},         // 3 GT de techo suave
+  {L:[19,17,15,13],R:[27,29,32,35],w:1,p:24}          // 4 neón
+];
+function carSVG(c, franja, m){
+  m = (Number.isInteger(m)&&m>=0&&m<MODELOS.length)? m : 0;
   const cv=document.createElement('canvas'); cv.width=40; cv.height=16;
   const g=cv.getContext('2d');
-  const pal={K:'#0d0e11',B:c,D:sombra(c),S:franja,W:'#a9d8f5',V:'#6fa6c8',T:'#17181c',H:'#c9ccd4',L:'#fff3a6',R:'#ff3b30',F:'#23252b',E:'#8a8d96'};
+  const pal={K:'#0d0e11',B:c,D:sombra(c),S:franja,W:'#a9d8f5',V:'#6fa6c8',T:'#17181c',H:'#c9ccd4',L:'#fff3a6',R:'#ff3b30',F:'#23252b',E:'#8a8d96',N:'#58e6ff',M:'#1b8fb0'};
   const R=(x,y,w,h,k)=>{ g.fillStyle=pal[k]; g.fillRect(x,y,w,h); };
+  g.save(); g.translate(0,2);
   // alerón trasero
-  R(1,0,10,2,'K'); R(2,0,8,1,'F'); R(3,2,1,3,'K'); R(8,2,1,3,'K');
-  // cabina (techo caído tipo fastback)
-  const L=[19,17,15,13,11], Rr=[27,29,31,33,35];
-  for(let y=0;y<5;y++) R(L[y],y,Rr[y]-L[y],1,'K');
-  R(20,1,6,1,'B');
-  for(let y=2;y<5;y++){ R(L[y]+2,y,Rr[y]-L[y]-4,1,'W'); }
-  R(24,2,1,3,'B'); R(18,3,5,1,'V');
+  if(m===0){ R(1,0,10,2,'K'); R(2,0,8,1,'F'); R(3,2,1,3,'K'); R(8,2,1,3,'K'); }
+  else if(m===1){ R(0,1,10,2,'K'); R(1,1,8,1,'F'); R(2,3,1,2,'K'); R(7,3,1,2,'K'); }
+  else if(m===2){ R(0,0,12,2,'K'); R(1,0,10,1,'F'); R(2,2,1,3,'K'); R(9,2,1,3,'K'); }
+  else if(m===3){ R(1,3,7,1,'K'); R(1,4,2,1,'K'); }
+  else { R(1,2,9,2,'K'); R(2,2,7,1,'S'); R(4,4,1,1,'K'); R(7,4,1,1,'K'); }
+  // cabina
+  const C=CAB[m], n=C.L.length, y0=5-n;
+  for(let i=0;i<n;i++) R(C.L[i],y0+i,C.R[i]-C.L[i],1,'K');
+  for(let i=C.w;i<n;i++) R(C.L[i]+2,y0+i,C.R[i]-C.L[i]-4,1,'W');
+  R(C.L[C.w-1]+3,y0+C.w-1,C.R[C.w-1]-C.L[C.w-1]-6,1,'B');
+  R(C.p,y0+C.w,1,n-C.w,'B'); R(C.L[n-1]+1,4,5,1,'V');
   // carrocería
-  R(1,5,38,5,'K'); R(3,4,34,1,'K');
-  R(2,5,36,4,'B'); R(2,8,36,1,'D');
-  R(10,6,22,1,'S'); R(21,5,1,3,'K'); R(16,7,2,1,'D');
-  R(2,6,2,2,'R'); R(35,6,3,2,'L'); R(36,8,3,1,'D'); R(0,8,2,1,'E');
-  // ruedas
+  R(1,5,38,7,'K'); R(3,4,34,1,'K');
+  R(2,5,36,5,'B'); R(2,10,36,1,'D');
+  R(10,7,22,1,'S'); R(21,5,1,5,'K'); R(16,9,2,1,'D');
+  R(2,7,2,2,'R'); R(35,7,3,2,'L'); R(36,10,3,1,'D'); R(0,10,2,1,'E');
+  if(m===1) R(14,8,5,1,'F');            // toma de aire lateral
+  if(m===3){ R(12,8,3,1,'F'); R(28,8,1,2,'D'); }
+  if(m===4){ R(12,8,6,1,'F'); }
+  g.restore();
+  // ruedas (7 px) sobresaliendo bajo la carrocería, como en los coches de referencia
   [8,31].forEach(cx=>{
-    R(cx-3,6,7,1,'K'); R(cx-5,7,11,1,'K');
-    [5,7,9,9,9,9,9,7,5].forEach((w,i)=>R(cx-((w-1)/2),7+i,w,1,'T'));
-    [3,5,5,5,3].forEach((w,i)=>R(cx-((w-1)/2),9+i,w,1,'H'));
-    R(cx,11,1,1,'K');
+    R(cx-4,8,9,2,'K');
+    [3,5,7,7,7,5,3].forEach((w,i)=>R(cx-((w-1)/2),9+i,w,1,'T'));
+    [3,5,5,5,3].forEach((w,i)=>R(cx-((w-1)/2),10+i,w,1,'H'));
+    R(cx,12,1,1,'K');
   });
+  if(m===4){ R(13,14,15,1,'N'); R(12,15,17,1,'M'); }   // luz de neón bajo el coche
   return `<img alt="" src="${cv.toDataURL()}">`;
 }
 function rangos(plFin){
@@ -304,7 +330,7 @@ function mostrarRangos(plFin){
 
 function construirPista(){
   $('pista').classList.toggle('online',online);
-  $('pista').innerHTML = racers.map((r,i)=>`<div class="carril ${i?'':'yo'}"><span class="nombre">${esc(r.nombre)}</span><span class="pos" id="pos${i}"></span><div class="meta"></div><div class="auto" id="auto${i}">${carSVG(okColor(r.color)?r.color:PALETA[i%8][0], okColor(r.franja)?r.franja:'#ffffff')}</div></div>`).join('');
+  $('pista').innerHTML = racers.map((r,i)=>`<div class="carril ${i?'':'yo'}"><span class="nombre">${esc(r.nombre)}</span><span class="pos" id="pos${i}"></span><div class="meta"></div><div class="auto" id="auto${i}">${carSVG(okColor(r.color)?r.color:PALETA[i%8][0], okColor(r.franja)?r.franja:'#ffffff', r.modelo)}</div></div>`).join('');
   moverAutos(racers.map(()=>0));
 }
 function moverAutos(p){
@@ -336,7 +362,7 @@ let resultados = [];
 function empezar(frasesFijas){
   palabras = frasesFijas || elegirPalabras(); idx=0; resultados=[]; hechos=0; aciertos=0; errores=0; $('aviso').textContent=''; llegada=[]; tFin=0;
   totalCar = palabras.reduce((a,w)=>a+w.length+1,0);
-  if(online){ const otros=jug.filter(j=>j.id!==miId); bots=otros.map(j=>({id:j.id,nombre:j.nombre,color:j.color,franja:j.franja,p:0,res:null})); racers=[yoJ(),...bots]; miRes=null; }
+  if(online){ const otros=jug.filter(j=>j.id!==miId); bots=otros.map(j=>({id:j.id,nombre:j.nombre,color:j.color,franja:j.franja,modelo:j.modelo,p:0,res:null})); racers=[yoJ(),...bots]; miRes=null; }
   else { bots = DIF[dif].bots.map(w=>({cps:w*5/60, p:0, f:0, ruido:0})); racers = racersSolo(); }
   $('lobby').hidden=true; $('vTabla').hidden=true; $('vBotones').hidden=true; $('caja').classList.remove('lobby-activo');
   construirPista(); $('entrada').value=''; $('prog').style.width='0'; pintar();
@@ -428,24 +454,27 @@ function actualizarJug(id,m){
   if(okColor(m.color)&&!usado(m.color)) j.color=m.color;
   else if(!j.color) j.color=(PALETA.find(p=>!usado(p[0]))||PALETA[0])[0];
   j.franja=okColor(m.franja)?m.franja:'#ffffff';
+  j.modelo=okModelo(m.modelo)?m.modelo:0;
 }
 function yoJ(){
   const j=online?jug.find(x=>x.id===miId):null;
-  return j||{nombre:limpiarNombre($('nombre').value),color:perfil.color,franja:perfil.franja};
+  return j||{nombre:limpiarNombre($('nombre').value),color:perfil.color,franja:perfil.franja,modelo:perfil.modelo};
 }
 function racersSolo(){
   const cpu=['#ff5a4f','#4aa8ff','#b58cff','#6fd08c','#ff8a3d','#ff6fb5'].filter(c=>c!==perfil.color).slice(0,3);
-  return [{nombre:limpiarNombre($('nombre').value),color:perfil.color,franja:perfil.franja},...cpu.map((c,i)=>({nombre:NOMBRES[i+1],color:c,franja:'#ffffff'}))];
+  const mods=[0,1,2,3,4].filter(x=>x!==perfil.modelo);
+  return [{nombre:limpiarNombre($('nombre').value),color:perfil.color,franja:perfil.franja,modelo:perfil.modelo},...cpu.map((c,i)=>({nombre:NOMBRES[i+1],color:c,franja:'#ffffff',modelo:mods[i]}))];
 }
 function racersOnline(){ return [yoJ(),...jug.filter(j=>j.id!==miId)]; }
 function pintarPerfil(){
-  $('prevCoche').innerHTML=carSVG(perfil.color,perfil.franja);
+  $('prevCoche').innerHTML=carSVG(perfil.color,perfil.franja,perfil.modelo);
+  [...$('swModelo').children].forEach((b,i)=>{ b.setAttribute('aria-pressed',String(i===perfil.modelo)); b.innerHTML=carSVG(perfil.color,perfil.franja,i); });
   [...$('swColor').children].forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.c===perfil.color)));
   [...$('swFranja').children].forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.c===perfil.franja)));
 }
 function perfilCambio(){
-  guardar('ct-color',perfil.color); guardar('ct-franja',perfil.franja); guardar('ct-nombre',$('nombre').value);
-  if(online){ const m={t:'perfil',nombre:$('nombre').value,color:perfil.color,franja:perfil.franja}; if(esAnf){ actualizarJug(miId,m); emitirSala(); } else if(connAnf&&connAnf.open) connAnf.send(m); }
+  guardar('ct-color',perfil.color); guardar('ct-franja',perfil.franja); guardar('ct-modelo',String(perfil.modelo)); guardar('ct-nombre',$('nombre').value);
+  if(online){ const m={t:'perfil',nombre:$('nombre').value,color:perfil.color,franja:perfil.franja,modelo:perfil.modelo}; if(esAnf){ actualizarJug(miId,m); emitirSala(); } else if(connAnf&&connAnf.open) connAnf.send(m); }
   else if(estado==='espera'){ racers=racersSolo(); construirPista(); }
 }
 function bloquearPerfil(b){ $('perfil').classList.toggle('bloq',b); $('nombre').disabled=b; }
@@ -453,6 +482,9 @@ function initPerfil(){
   const mk=(cont,lista,clave)=>{ $(cont).innerHTML=lista.map(([c,n])=>`<button type="button" class="sw" data-c="${c}" style="background:${c}" aria-label="${n}" title="${n}" aria-pressed="false"></button>`).join('');
     $(cont).addEventListener('click',e=>{ const b=e.target.closest('.sw'); if(!b) return; perfil[clave]=b.dataset.c; pintarPerfil(); perfilCambio(); }); };
   mk('swColor',PALETA,'color'); mk('swFranja',FRANJA_OPC,'franja');
+  $('swModelo').innerHTML=MODELOS.map((n,i)=>`<button type="button" class="mod" data-i="${i}" aria-label="${n}" title="${n}" aria-pressed="false"></button>`).join('');
+  $('swModelo').addEventListener('click',e=>{ const b=e.target.closest('.mod'); if(!b) return; perfil.modelo=+b.dataset.i; pintarPerfil(); perfilCambio(); });
+  const mo=parseInt(leer('ct-modelo'),10); if(okModelo(mo)) perfil.modelo=mo;
   const c=leer('ct-color'), f=leer('ct-franja');
   if(PALETA.some(p=>p[0]===c)) perfil.color=c; if(FRANJA_OPC.some(p=>p[0]===f)) perfil.franja=f;
   $('nombre').value=leer('ct-nombre')||'';
@@ -501,7 +533,7 @@ function crearSala(){
   if(typeof Peer==='undefined'){ lbMsg('No se pudo cargar el modo online.'); return; }
   lbMsg('Creando sala…'); codigoSala=codigoNuevo();
   peer=new Peer(PREF+codigoSala);
-  peer.on('open',id=>{ miId=id; esAnf=true; jug=[{id,nombre:miNombre(),color:perfil.color,franja:perfil.franja}]; entrarSala(); emitirSala(); });
+  peer.on('open',id=>{ miId=id; esAnf=true; jug=[{id,nombre:miNombre(),color:perfil.color,franja:perfil.franja,modelo:perfil.modelo}]; entrarSala(); emitirSala(); });
   peer.on('connection',conn=>{
     conn.on('data',m=>{
       if(m.t==='hola'){
@@ -526,7 +558,7 @@ function unirSala(){
   const falla=setTimeout(()=>{ lbMsg('No se pudo conectar. Revisa el código y tu conexión.'); salirSala(true); },12000);
   peer.on('open',id=>{
     miId=id; connAnf=peer.connect(PREF+c,{reliable:true});
-    connAnf.on('open',()=>{ clearTimeout(falla); esAnf=false; entrarSala(); connAnf.send({t:'hola',nombre:miNombre(),color:perfil.color,franja:perfil.franja}); });
+    connAnf.on('open',()=>{ clearTimeout(falla); esAnf=false; entrarSala(); connAnf.send({t:'hola',nombre:miNombre(),color:perfil.color,franja:perfil.franja,modelo:perfil.modelo}); });
     connAnf.on('data',m=>{
       if(m.t==='sala') aplicarSala(m);
       else if(m.t==='inicio'){ setDif(m.dif); empezar(m.frases); }
